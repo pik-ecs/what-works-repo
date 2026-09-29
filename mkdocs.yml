@@ -5,4 +5,5 @@ theme:
   name: material
 nav:
   - Home: index.md
+  - Screening progress: progress.md
   - Workflow: workflow.md
