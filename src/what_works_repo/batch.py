@@ -90,3 +90,9 @@ class Batch:
     @property
     def next(self) -> "Batch":
         return Batch(self.number + 1)
+
+    @classmethod
+    def existing(cls) -> list["Batch"]:
+        """Return an ordered list of batches on disk."""
+        numbers = [int(d.name.split("_", 1)[1]) for d in BATCH_DIR.glob("batch_*")]
+        return [cls(n) for n in sorted(numbers)]
