@@ -1,26 +1,19 @@
 """Generate plots"""
 
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 import matplotlib.pyplot as plt
 import pandas as pd
 import typer
 
-from what_works_repo.batch import Batch
+from what_works_repo.batch import collect_annotations
 from what_works_repo.constants import FIGURES_DIR
 
 app = typer.Typer()
-
-
-def collect_annotations() -> pd.DataFrame:
-    """Collect all human annotations."""
-    batch_dfs = []
-    for batch in Batch.existing():
-        if batch.annotations.exists():
-            batch_df = pd.read_csv(batch.annotations, usecols=["document_id", "incl"])
-            batch_df["batch"] = batch.number
-            batch_dfs.append(batch_df)
-    return pd.concat(batch_dfs, ignore_index=True)
 
 
 def plot_annotation_progress(df: pd.DataFrame) -> plt.Figure:
