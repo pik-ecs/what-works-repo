@@ -423,6 +423,21 @@ wheels = [
 ]
 
 [[package]]
+name = "buscarpy"
+version = "0.0.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "matplotlib" },
+    { name = "numpy" },
+    { name = "pandas" },
+    { name = "scipy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/5d/78/9fbd0441a8299f3a03d686bde69eb238afca0f1157296506c3c8b512d0de/buscarpy-0.0.2.tar.gz", hash = "sha256:cff82c9d489d47f846a29d2c95f1ac996e833dc927b36d4a07371187712718eb", size = 4720, upload-time = "2023-10-12T08:57:14.19Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/cd/4c/b17deae06cd21b9adc774f9f0858ca1e5623423a14a7f4bf88f604b6e603/buscarpy-0.0.2-py3-none-any.whl", hash = "sha256:c5594559129006f8f9f72484f802e1da47066091525c68b1bede77e41c7da6c1", size = 4917, upload-time = "2023-10-12T08:57:12.736Z" },
+]
+
+[[package]]
 name = "cachetools"
 version = "5.5.2"
 source = { registry = "https://pypi.org/simple" }
@@ -5137,6 +5152,7 @@ wheels = [
 name = "what-works-repo"
 source = { editable = "." }
 dependencies = [
+    { name = "buscarpy" },
     { name = "data-extraction-evaluation-toolkit" },
     { name = "dvc", extra = ["ssh"] },
     { name = "loguru" },
@@ -5169,6 +5185,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "buscarpy", specifier = ">=0.0.2" },
     { name = "data-extraction-evaluation-toolkit", git = "https://github.com/destiny-evidence/data-extraction-evaluation-toolkit.git?rev=feature%2F%252317-train-test-splits" },
     { name = "dvc", extras = ["ssh"], specifier = ">=3.67.1" },
     { name = "loguru", specifier = ">=0.7.3" },

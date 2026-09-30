@@ -2,6 +2,10 @@
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 from what_works_repo.configurations import NextBatchConfig
 from what_works_repo.constants import BATCH_DIR, DEET_DIR
@@ -96,3 +100,25 @@ class Batch:
         """Return an ordered list of batches on disk."""
         numbers = [int(d.name.split("_", 1)[1]) for d in BATCH_DIR.glob("batch_*")]
         return [cls(n) for n in sorted(numbers)]
+
+
+def collect_annotations() -> pd.DataFrame:
+    """Collect all human and deet annotations."""
+    import pandas as pd
+
+    batch_dfs = []
+    for batch in Batch.existing():
+        if batch.annotations.exists():
+            batch_human = pd.read_csv(
+                batch.annotations, usecols=["document_id", "incl"]
+            )
+            batch_human["annotator"] = "human"
+            batch_llm = pd.read_csv(
+                batch.deet_resolved_annotations, usecols=["document_id", "incl"]
+            )
+            batch_llm["annotator"] = "llm"
+            batch_df = pd.concat([batch_human, batch_llm], ignore_index=True)
+
+            batch_df["batch"] = batch.number
+            batch_dfs.append(batch_df)
+    return pd.concat(batch_dfs, ignore_index=True)

@@ -15,3 +15,5 @@ site/
 deet.log
 
 llm_annotations.json
+
+.cache/

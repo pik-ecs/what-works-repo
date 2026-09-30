@@ -18,6 +18,7 @@ dynamic = [
   "version",
 ]
 dependencies = [
+  "buscarpy>=0.0.2",
   "data-extraction-evaluation-toolkit",
   "dvc[ssh]>=3.67.1",
   "loguru>=0.7.3",
