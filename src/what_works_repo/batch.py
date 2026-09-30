@@ -102,7 +102,7 @@ class Batch:
         return [cls(n) for n in sorted(numbers)]
 
 
-def collect_annotations() -> pd.DataFrame:
+def collect_annotations() -> "pd.DataFrame":
     """Collect all human and deet annotations."""
     import pandas as pd
 
