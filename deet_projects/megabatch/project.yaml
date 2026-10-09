@@ -1,0 +1,7 @@
+project:
+  created_at: '2026-10-09T14:41:28.634498Z'
+  evaluation_strategy: dev_val_test
+  gold_standard_data_format: generic_csv
+  gold_standard_data_path: ../../data/processed/megabatch/annotations.csv
+  name: megabatch
+  pdf_dir: null

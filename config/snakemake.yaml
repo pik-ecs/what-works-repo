@@ -20,3 +20,6 @@ ml:
     - name: evidence-for-climate-solutions/climatebert-policyinstruments-expost_exante
       label: 19 - 0. Ex-post
       threshold: 0.3
+deet_eval:
+  megabatch_start: 3
+  megabatch_end: 6

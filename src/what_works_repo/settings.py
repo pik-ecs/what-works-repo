@@ -55,6 +55,11 @@ class MLSettings(BaseModel):
         return self._prediction_storage()[1]
 
 
+class DeetEvalSettings(BaseModel):
+    megabatch_start: int
+    megabatch_end: int
+
+
 class Settings(BaseSettings):
     """Settings for the what works repo."""
 
@@ -65,6 +70,8 @@ class Settings(BaseSettings):
     nacsos: NacsosSettings
     ml: MLSettings
     sample_size: int = 20000
+
+    deet_eval: DeetEvalSettings
 
     @classmethod
     def settings_customise_sources(
