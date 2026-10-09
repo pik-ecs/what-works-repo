@@ -5,7 +5,12 @@ from snakemake.exceptions import WorkflowError
 from what_works_repo.batch import Batch
 from what_works_repo.logging import logger
 from what_works_repo.settings import settings
-from what_works_repo.constants import STOPPING_CRITERIA_TRIGGERED, RAW_DATA
+from what_works_repo.constants import (
+    STOPPING_CRITERIA_TRIGGERED,
+    RAW_DATA,
+    DEET_MEGABATCH_DIR,
+    DEET_DIR,
+)
 
 batch = Batch.current()
 
@@ -199,3 +204,22 @@ rule predict:
         batch.next.items,
     shell:
         "uv run python src/what_works_repo/classify/predict.py {batch.number}"
+
+
+rule create_deet_megabatch:
+    """Concatenate batch annotations into megabatch gold data with deet project."""
+    input:
+        annotations=[
+            Batch(n).annotations
+            for n in range(
+                settings.deet_eval.megabatch_start,
+                settings.deet_eval.megabatch_end + 1,
+            )
+        ],
+    output:
+        gold=DEET_MEGABATCH_DIR / "annotations.csv",
+        deet_config=DEET_DIR / "megabatch" / "project.yaml",
+    shell:
+        "uv run python src/what_works_repo/deet_orchestration/collect_megabatch.py && "
+        "uv run python src/what_works_repo/deet_orchestration/create_deet_subproject.py "
+        "{output.gold} {output.deet_config}"

@@ -11,3 +11,5 @@ PREDICTION_DIR = Path("data/predictions/")
 DEET_RUN_SKIP = "Skip deet annotation for this batch"
 
 FIGURES_DIR = Path("docs/figures")
+
+DEET_MEGABATCH_DIR = Path("data/processed/megabatch")

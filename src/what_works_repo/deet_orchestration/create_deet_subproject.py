@@ -19,7 +19,7 @@ def main(annotation_path: Path, config_target: Path):
 
     with chdir(deet_project_dir):
         project = DeetProject(
-            name="asdf",
+            name=deet_project_dir.name,
             gold_standard_data_format=SupportedImportFormat.GENERIC_CSV,
             gold_standard_data_path=relative_annotation_path,
             pdf_dir=None,
