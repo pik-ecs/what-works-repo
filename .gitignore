@@ -1,6 +1,7 @@
 .snakemake/
 
-data/
+data/*
+!data/*.dvc
 .dvc/tmp/
 .dvc/cache/
 .dvc/config.local
