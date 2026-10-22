@@ -40,6 +40,11 @@ class Batch:
         return self.dir / "annotations.csv"
 
     @property
+    def original_annotations(self) -> Path:
+        """Per-annotator labels, before any resolution."""
+        return self.dir / "original_annotations.csv"
+
+    @property
     def imported(self) -> Path:
         return self.dir / "imported.txt"
 
