@@ -3,6 +3,11 @@ site_url: https://mcc-apsis.github.io/what-works-repo/
 repo_url: https://github.com/mcc-apsis/what-works-repo
 theme:
   name: material
+exclude_docs: |
+  /tables/
+markdown_extensions:
+  - pymdownx.snippets:
+      base_path: [docs]
 nav:
   - Home: index.md
   - Screening progress: progress.md
