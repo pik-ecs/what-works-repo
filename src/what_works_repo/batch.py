@@ -127,3 +127,19 @@ def collect_annotations() -> "pd.DataFrame":
             batch_df["batch"] = batch.number
             batch_dfs.append(batch_df)
     return pd.concat(batch_dfs, ignore_index=True)
+
+
+def collect_original_annotations() -> "pd.DataFrame":
+    """Collect all original per-annotator human annotations."""
+    import pandas as pd
+
+    batch_dfs = []
+    for batch in Batch.existing():
+        if batch.original_annotations.exists():
+            batch_df = pd.read_csv(
+                batch.original_annotations,
+                usecols=["document_id", "annotator", "incl"],
+            )
+            batch_df["batch"] = batch.number
+            batch_dfs.append(batch_df)
+    return pd.concat(batch_dfs, ignore_index=True)
