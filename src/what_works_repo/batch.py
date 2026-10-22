@@ -40,6 +40,11 @@ class Batch:
         return self.dir / "annotations.csv"
 
     @property
+    def original_annotations(self) -> Path:
+        """Per-annotator labels, before any resolution."""
+        return self.dir / "original_annotations.csv"
+
+    @property
     def imported(self) -> Path:
         return self.dir / "imported.txt"
 
@@ -119,6 +124,22 @@ def collect_annotations() -> "pd.DataFrame":
             batch_llm["annotator"] = "llm"
             batch_df = pd.concat([batch_human, batch_llm], ignore_index=True)
 
+            batch_df["batch"] = batch.number
+            batch_dfs.append(batch_df)
+    return pd.concat(batch_dfs, ignore_index=True)
+
+
+def collect_original_annotations() -> "pd.DataFrame":
+    """Collect all original per-annotator human annotations."""
+    import pandas as pd
+
+    batch_dfs = []
+    for batch in Batch.existing():
+        if batch.original_annotations.exists():
+            batch_df = pd.read_csv(
+                batch.original_annotations,
+                usecols=["document_id", "annotator", "incl"],
+            )
             batch_df["batch"] = batch.number
             batch_dfs.append(batch_df)
     return pd.concat(batch_dfs, ignore_index=True)

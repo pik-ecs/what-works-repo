@@ -46,12 +46,12 @@ async def export(resolution_scope_id: str, output_path: Path):
         )
         df = pd.DataFrame(rows)
 
-    df[["item_id", "title", "text", f"{settings.nacsos.inclusion_key}|1"]].rename(
+    df[["scopus_id", "title", "text", f"{settings.nacsos.inclusion_key}|1"]].rename(
         columns={
-            "item_id": "document_id",
+            "scopus_id": "document_id",
             "title": "name",
             "text": "abstract",
-            "{settings.nacsos.inclusion_key}|1": "incl",
+            f"{settings.nacsos.inclusion_key}|1": "incl",
         }
     ).to_csv(output_path, index=False)
 
