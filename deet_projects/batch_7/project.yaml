@@ -1,0 +1,7 @@
+project:
+  created_at: '2026-10-22T14:15:31.669574Z'
+  evaluation_strategy: dev_val_test
+  gold_standard_data_format: generic_csv
+  gold_standard_data_path: ../../data/processed/batches/batch_7/annotations.csv
+  name: batch_7
+  pdf_dir: null
