@@ -5152,9 +5152,11 @@ wheels = [
 name = "what-works-repo"
 source = { editable = "." }
 dependencies = [
+    { name = "attrs" },
     { name = "buscarpy" },
     { name = "data-extraction-evaluation-toolkit" },
     { name = "dvc", extra = ["ssh"] },
+    { name = "httpx" },
     { name = "loguru" },
     { name = "matplotlib" },
     { name = "pyarrow" },
@@ -5185,9 +5187,11 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "attrs", specifier = ">=26.1" },
     { name = "buscarpy", specifier = ">=0.0.2" },
     { name = "data-extraction-evaluation-toolkit", git = "https://github.com/destiny-evidence/data-extraction-evaluation-toolkit.git?rev=feature%2F%252317-train-test-splits" },
     { name = "dvc", extras = ["ssh"], specifier = ">=3.67.1" },
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "matplotlib", specifier = ">=3.11.2" },
     { name = "mkdocs-material", marker = "extra == 'docs'", specifier = ">=9.7.7" },

@@ -18,3 +18,7 @@ deet.log
 llm_annotations.json
 
 .cache/
+api/.openapi_pruned.json
+
+# one-off maintenance scripts, kept locally only
+src/what_works_repo/nacsos_rw/remove_unassigned.py

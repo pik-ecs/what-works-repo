@@ -1,23 +1,20 @@
 """Export human annotations, if complete."""
 
-import asyncio
 import json
 import uuid
 from pathlib import Path
-from typing import cast
 
 import pandas as pd
 import typer
-from nacsos_data.db import get_engine_async
-from nacsos_data.db.crud.annotations import (
-    read_assignments_for_scope,
-)
-from nacsos_data.db.crud.items import read_any_item_by_item_id
-from nacsos_data.db.schemas import BotAnnotationMetaData
-from nacsos_data.models.items import AcademicItemModel
-from nacsos_data.util.annotations import read_bot_annotations
-from sqlalchemy import select
 
+from what_works_repo.nacsos_api import call
+from what_works_repo.nacsos_api.generated.api.annotations.get_assignments_for_scope_api_annotations_annotate_assignments_scope_assignment_scope_id_get import (  # noqa: E501
+    sync as get_assignments_for_scope,
+)
+from what_works_repo.nacsos_api.generated.api.annotations.get_bot_scopes_api_annotations_bot_scopes_get import (  # noqa: E501
+    sync as get_bot_scopes,
+)
+from what_works_repo.nacsos_api.ops import export_annotations_jsonl
 from what_works_repo.settings import settings
 
 
@@ -34,65 +31,52 @@ def read_scopes(scope_path: Path) -> list[str]:
     return scope_ids
 
 
-async def export_assignments(assignment_scope_id: str) -> list[dict]:
-    db_engine = get_engine_async("config/.env")
+def export_assignments(assignment_scope_id: str) -> list[dict]:
+    assignments = call(
+        get_assignments_for_scope, assignment_scope_id=assignment_scope_id
+    )
 
-    async with db_engine.session() as session:
-        # get assignments
-        assignments = await read_assignments_for_scope(
-            assignment_scope_id=assignment_scope_id, session=session
+    # The resolution created in the NACSOS UI is the bot metadata for this scope.
+    metas = [
+        meta
+        for meta in call(get_bot_scopes)
+        if str(meta.assignment_scope_id) == assignment_scope_id
+    ]
+    if len(metas) != 1:
+        raise ValueError(
+            f"Expected exactly one resolution for scope, found {len(metas)}."
         )
 
-        # Get bot metadata
-        stmt = select(BotAnnotationMetaData).filter_by(
-            assignment_scope_id=assignment_scope_id
+    rows = [
+        row
+        for row in export_annotations_jsonl(
+            bot_annotation_metadata_ids=[str(metas[0].bot_annotation_metadata_id)]
         )
-        bot_meta = (await session.execute(stmt)).scalars().one_or_none()
-        if not bot_meta:
-            raise ValueError("No resolved annotations for this scope.")
-
-        resolved = await read_bot_annotations(
-            session=session,
-            bot_annotation_metadata_id=str(bot_meta.bot_annotation_metadata_id),
-        )
-        resolved_item_ids = {str(r.item_id) for r in resolved}
+        if row["username"] == "RESOLVED"
+    ]
+    resolved_item_ids = {str(row["item_id"]) for row in rows}
 
     for assignment in assignments:
         if str(assignment.item_id) not in resolved_item_ids:
             raise ValueError(f"Assignment {assignment.item_id} not resolved")
 
-    annotations_to_export = []
-
-    for resolved_anno in resolved:
-        if resolved_anno.key == settings.nacsos.inclusion_key:
-            item = await read_any_item_by_item_id(
-                resolved_anno.item_id, "academic", db_engine
-            )
-            item = cast(AcademicItemModel, item)
-            if not item:
-                raise ValueError("Item not found")
-            annotations_to_export.append(
-                {
-                    "document_id": str(item.scopus_id),
-                    "name": item.title,
-                    "abstract": item.text,
-                    settings.nacsos.inclusion_key: resolved_anno.value_int,
-                }
-            )
-    return annotations_to_export
-
-
-async def gather_exports(scope_ids: list[str]) -> list[dict]:
-    results = await asyncio.gather(
-        *[export_assignments(scope_id) for scope_id in scope_ids]
-    )
-    return [row for rows in results for row in rows]
+    incl_column = f"{settings.nacsos.inclusion_key}|1"
+    return [
+        {
+            "document_id": str(row["scopus_id"]),
+            "name": row["title"],
+            "abstract": row["text"],
+            settings.nacsos.inclusion_key: row[incl_column],
+        }
+        for row in rows
+        if row[incl_column] is not None
+    ]
 
 
 def main(scope_path: Path, output_path: Path):
 
     scope_ids = read_scopes(scope_path)
-    all_rows = asyncio.run(gather_exports(scope_ids))
+    all_rows = [row for scope_id in scope_ids for row in export_assignments(scope_id)]
 
     pd.DataFrame(all_rows).to_csv(output_path, index=False)
 

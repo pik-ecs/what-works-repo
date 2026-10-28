@@ -18,9 +18,11 @@ dynamic = [
   "version",
 ]
 dependencies = [
+  "attrs>=26.1",
   "buscarpy>=0.0.2",
   "data-extraction-evaluation-toolkit",
   "dvc[ssh]>=3.67.1",
+  "httpx>=0.28.1",
   "loguru>=0.7.3",
   "matplotlib>=3.11.2",
   "pyarrow>=25.0.1",
@@ -39,6 +41,7 @@ optional-dependencies.ml = [
 optional-dependencies.nacsos = [
   "nacsos-data[scripts,utils]",
 ]
+scripts.nacsos-login = "what_works_repo.nacsos_api.login:app"
 
 [dependency-groups]
 dev = [
@@ -64,6 +67,9 @@ workspace.members = [
 ]
 
 [tool.ruff]
+extend-exclude = [
+  "src/what_works_repo/nacsos_api/generated", # vendored, regenerate via scripts/regen_nacsos_client.sh
+]
 lint.select = [
   "B",
   "E",
@@ -74,4 +80,7 @@ lint.select = [
 ]
 
 [tool.ty]
+src.exclude = [
+  "src/what_works_repo/nacsos_api/generated/**", # vendored, see scripts/regen_nacsos_client.sh
+]
 environment.python-version = "3.14"

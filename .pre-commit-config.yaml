@@ -5,9 +5,11 @@ repos:
       - id: ruff
         args:
           - --config=pyproject.toml
+        exclude: ^src/what_works_repo/nacsos_api/generated/
       - id: ruff-format
         args:
           - --config=pyproject.toml
+        exclude: ^src/what_works_repo/nacsos_api/generated/
 
   - repo: https://github.com/tox-dev/pyproject-fmt
     rev: "b82a24a520c5d496cb7b23b4e9b63537c280f51b" #v2.27.0
@@ -20,6 +22,7 @@ repos:
     rev: ac85803d0443afba1e0700690366fd2d39e02580 # v0.0.65
     hooks:
       - id: ty
+        exclude: ^src/what_works_repo/nacsos_api/generated/
 
   - repo: https://github.com/snakemake/snakefmt
     rev: fdfb5d929c2a630a7c705a3d70dbdd69ed44334b  # v2.0.3
