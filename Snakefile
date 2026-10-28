@@ -7,6 +7,7 @@ from what_works_repo.logging import logger
 from what_works_repo.settings import settings
 from what_works_repo.constants import (
     STOPPING_CRITERIA_TRIGGERED,
+    STOPPING_THRESHOLD,
     RAW_DATA,
     DEET_MEGABATCH_DIR,
     DEET_DIR,
@@ -18,7 +19,7 @@ batch = Batch.current()
 def pipeline_target(wildcards):
     decision = checkpoints.decide_stopping.get().output[0]
     verdict = float(open(decision).read().strip())
-    if verdict < 0.05:
+    if verdict < STOPPING_THRESHOLD:
         return str(decision)
     return str(batch.next.items)
 

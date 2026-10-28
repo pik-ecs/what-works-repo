@@ -143,6 +143,15 @@ def main(batch_n: int):
     if not batch.imported.exists():
         print(f"{batch.imported} not found - has this batch been imported yet?")
         raise typer.Exit(1)
+    if not sys.stdin.isatty():
+        # ahead of the DB query: this path needs no data, and a missing DB
+        # tunnel would otherwise crash the headless run
+        console.print(
+            "[yellow]No terminal attached:[/] write the chosen scope IDs to "
+            f"[bold]{batch.scope_ids}[/] as a JSON array of UUID strings, then "
+            "re-run snakemake."
+        )
+        raise typer.Exit(1)
     rows = asyncio.run(candidate_scopes(batch))
     if not rows:
         imported_at = datetime.fromtimestamp(batch.imported.stat().st_mtime)
@@ -151,13 +160,6 @@ def main(batch_n: int):
             f"the import at {imported_at:%Y-%m-%d %H:%M}.[/] Ask the team to "
             "create the assignment scope(s) in NACSOS, then [bold]re-run "
             "snakemake[/] to try again."
-        )
-        raise typer.Exit(1)
-    if not sys.stdin.isatty():
-        console.print(
-            "[yellow]No terminal attached:[/] write the chosen scope IDs to "
-            f"[bold]{batch.scope_ids}[/] as a JSON array of UUID strings, then "
-            "re-run snakemake."
         )
         raise typer.Exit(1)
     _banner(batch.number)
