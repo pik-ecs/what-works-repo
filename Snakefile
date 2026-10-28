@@ -94,16 +94,14 @@ rule import_scopus_to_nacsos:
 
 
 rule make_assignments:
-    """Manual step: Create an assignment scope in NACSOS, write ID to output file."""
+    """Manual step: after the team creates assignment scopes in NACSOS,
+    lists them and prompts to pick; writes the chosen IDs to the output."""
     input:
         ancient(batch.imported),
     output:
         batch.scope_ids,
-    run:
-        # TODO: Should this come from next batch configuration?
-        require_manual_step(
-            output[0], "Create assignment scope in NACSOS, and record its ID"
-        )
+    shell:
+        "uv run python src/what_works_repo/nacsos_rw/configure_scope.py {batch.number}"
 
 
 rule export_batch_annotations:

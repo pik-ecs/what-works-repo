@@ -25,6 +25,7 @@ dependencies = [
   "matplotlib>=3.11.2",
   "pyarrow>=25.0.1",
   "pydantic-settings>=2.14.2",
+  "rich>=15",
   "scikit-learn>=1.9",
   "snakemake>=9.24",
   "snakemake-executor-plugin-slurm>=2.8",
