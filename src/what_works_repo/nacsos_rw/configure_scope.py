@@ -157,8 +157,8 @@ def main(batch_n: int):
         imported_at = datetime.fromtimestamp(batch.imported.stat().st_mtime)
         console.print(
             f"[yellow]No new scopes in project {settings.nacsos.project_id} since "
-            f"the import at {imported_at:%Y-%m-%d %H:%M}.[/] Ask the team to "
-            "create the assignment scope(s) in NACSOS, then [bold]re-run "
+            f"the import at {imported_at:%Y-%m-%d %H:%M}.[/] Ask the annotation team to"
+            " create the assignment scope(s) in NACSOS, then [bold]re-run "
             "snakemake[/] to try again."
         )
         raise typer.Exit(1)
