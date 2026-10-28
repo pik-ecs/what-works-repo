@@ -19,7 +19,7 @@ dynamic = [
 ]
 dependencies = [
   "buscarpy>=0.0.2",
-  "data-extraction-evaluation-toolkit",
+  "destiny-deet>=0.5.0",
   "dvc[ssh]>=3.67.1",
   "loguru>=0.7.3",
   "matplotlib>=3.11.2",
@@ -54,11 +54,11 @@ build.targets.wheel.packages = [
 ]
 
 [tool.uv]
-sources.data-extraction-evaluation-toolkit = { git = "https://github.com/destiny-evidence/data-extraction-evaluation-toolkit.git", rev = "feature/%2317-train-test-splits" }
 sources.nacsos_data = [
   { git = "git+https://gitlab.pik-potsdam.de/mcc-apsis/nacsos/nacsos-data.git", tag = "v0.24.53" },
 ]
 sources.what_works_repo = { workspace = true, editable = true }
+sources.destiny-deet = { git = "https://github.com/destiny-evidence/data-extraction-evaluation-toolkit.git", rev = "feature/465-decisions-backend" }
 workspace.members = [
   ".",
 ]

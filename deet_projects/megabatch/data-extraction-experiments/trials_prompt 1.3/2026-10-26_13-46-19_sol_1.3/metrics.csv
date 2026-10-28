@@ -1,0 +1,2 @@
+extraction_run_id,attribute_id,attribute_label,attribute_type,n_gold_instances,accuracy,recall,precision,f1_score,n_labels
+2026-10-26_13-46-19_sol_1.3.1,0,incl,bool,152,0.8157894736842105,0.625,0.8333333333333334,0.7142857142857143,56.0
