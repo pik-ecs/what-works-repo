@@ -118,6 +118,18 @@ rule export_batch_annotations:
         "{output} "
 
 
+rule export_batch_original_annotations:
+    """Export each annotator's original labels, before resolution, for inter-rater agreement."""
+    input:
+        batch.scope_ids,
+    output:
+        batch.original_annotations,
+    shell:
+        "uv run python src/what_works_repo/nacsos_rw/export_original_human_annotations.py "
+        "{input} "
+        "{output} "
+
+
 rule create_deet_subproject:
     """Create a deet project that uses annotations as gold standard data"""
     input:
