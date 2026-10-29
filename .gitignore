@@ -18,3 +18,8 @@ deet.log
 llm_annotations.json
 
 .cache/
+
+# IRR figures are rendered locally for discussion, not committed
+docs/figures/pairwise_kappa.svg
+docs/figures/pairwise_kappa_bars.svg
+docs/figures/coder_pr.svg

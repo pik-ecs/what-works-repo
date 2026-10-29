@@ -7,6 +7,7 @@ from what_works_repo.logging import logger
 from what_works_repo.settings import settings
 from what_works_repo.constants import (
     STOPPING_CRITERIA_TRIGGERED,
+    STOPPING_THRESHOLD,
     RAW_DATA,
     DEET_MEGABATCH_DIR,
     DEET_DIR,
@@ -18,7 +19,7 @@ batch = Batch.current()
 def pipeline_target(wildcards):
     decision = checkpoints.decide_stopping.get().output[0]
     verdict = float(open(decision).read().strip())
-    if verdict < 0.05:
+    if verdict < STOPPING_THRESHOLD:
         return str(decision)
     return str(batch.next.items)
 
@@ -94,16 +95,14 @@ rule import_scopus_to_nacsos:
 
 
 rule make_assignments:
-    """Manual step: Create an assignment scope in NACSOS, write ID to output file."""
+    """Manual step: after the team creates assignment scopes in NACSOS,
+    lists them and prompts to pick; writes the chosen IDs to the output."""
     input:
         ancient(batch.imported),
     output:
         batch.scope_ids,
-    run:
-        # TODO: Should this come from next batch configuration?
-        require_manual_step(
-            output[0], "Create assignment scope in NACSOS, and record its ID"
-        )
+    shell:
+        "uv run python src/what_works_repo/nacsos_rw/configure_scope.py {batch.number}"
 
 
 rule export_batch_annotations:
