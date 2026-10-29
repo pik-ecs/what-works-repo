@@ -27,6 +27,8 @@ dependencies = [
   "matplotlib>=3.11.2",
   "pyarrow>=25.0.1",
   "pydantic-settings>=2.14.2",
+  "rich>=15",
+  "scikit-learn>=1.9",
   "snakemake>=9.24",
   "snakemake-executor-plugin-slurm>=2.8",
   "typer>=0.27",
@@ -42,6 +44,7 @@ optional-dependencies.nacsos = [
   "nacsos-data[scripts,utils]",
 ]
 scripts.nacsos-login = "what_works_repo.nacsos_api.login:app"
+scripts.wwcs = "what_works_repo.cli:app"
 
 [dependency-groups]
 dev = [
@@ -83,4 +86,4 @@ lint.select = [
 src.exclude = [
   "src/what_works_repo/nacsos_api/generated/**", # vendored, see scripts/regen_nacsos_client.sh
 ]
-environment.python-version = "3.14"
+environment.python-version = "3.13"

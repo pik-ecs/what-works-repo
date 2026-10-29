@@ -14,3 +14,5 @@ FIGURES_DIR = Path("docs/figures")
 TABLES_DIR = Path("docs/tables")
 
 DEET_MEGABATCH_DIR = Path("data/processed/megabatch")
+
+STOPPING_THRESHOLD = 0.05

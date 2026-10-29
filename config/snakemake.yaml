@@ -24,4 +24,4 @@ ml:
       threshold: 0.3
 deet_eval:
   megabatch_start: 3
-  megabatch_end: 6
+  megabatch_end: 7
