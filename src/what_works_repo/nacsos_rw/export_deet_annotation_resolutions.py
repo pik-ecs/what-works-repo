@@ -1,50 +1,29 @@
-import asyncio
 from pathlib import Path
 
 import pandas as pd
 import typer
-from nacsos_data.db import get_engine_async
-from nacsos_data.db.crud.annotations import read_assignment_counts_for_scope
-from nacsos_data.models.nql import AssignmentFilter
-from nacsos_data.util.annotations.export import get_project_labels, prepare_export_table
 
 from what_works_repo.constants import DEET_SCOPE_SENTINEL
 from what_works_repo.logging import logger
+from what_works_repo.nacsos_api.generated.models import AssignmentFilter
+from what_works_repo.nacsos_api.ops import (
+    ensure_scope_complete,
+    export_annotations_jsonl,
+)
 from what_works_repo.settings import settings
 
 
-async def export(resolution_scope_id: str, output_path: Path):
-    db_engine = get_engine_async("config/.env")
-
-    counts = await read_assignment_counts_for_scope(
-        assignment_scope_id=resolution_scope_id, db_engine=db_engine
-    )
-    if counts.num_open > 0 or counts.num_partial > 0:
-        raise ValueError(
-            f"Resolution scope has incomplete assignments: "
-            f"{counts.num_open} open, {counts.num_partial} partial"
-        )
-
-    labels = await get_project_labels(
-        project_id=settings.nacsos.project_id, db_engine=db_engine
-    )
+def export(resolution_scope_id: str, output_path: Path):
+    ensure_scope_complete(resolution_scope_id, "Resolution scope")
 
     # TODO: Deal with resolutions if desired.
     # This just assumes single annotators are source of truth
 
-    async with db_engine.session() as session:
-        rows = await prepare_export_table(
-            session=session,
-            nql_filter=AssignmentFilter(mode=2, scopes=[resolution_scope_id]),
-            bot_annotation_metadata_ids=None,
-            assignment_scope_ids=[resolution_scope_id],
-            user_ids=None,
-            project_id=settings.nacsos.project_id,
-            labels=list(labels.values()),
-            ignore_hierarchy=True,
-            ignore_repeat=True,
-        )
-        df = pd.DataFrame(rows)
+    rows = export_annotations_jsonl(
+        nql_filter=AssignmentFilter(mode=2, scopes=[resolution_scope_id]),
+        assignment_scope_ids=[resolution_scope_id],
+    )
+    df = pd.DataFrame(rows)
 
     df[["scopus_id", "title", "text", f"{settings.nacsos.inclusion_key}|1"]].rename(
         columns={
@@ -70,11 +49,9 @@ def main(deet_resolutions_scope: Path, output_path: Path):
 
     logger.info("Exporting human resolutions of deet annotations.")
 
-    asyncio.run(
-        export(
-            resolution_scope_id=resolution_scope_id,
-            output_path=output_path,
-        )
+    export(
+        resolution_scope_id=resolution_scope_id,
+        output_path=output_path,
     )
 
 

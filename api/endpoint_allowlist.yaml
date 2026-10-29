@@ -1,0 +1,26 @@
+# nacsos-core endpoints used by this pipeline.
+# api/openapi.json is pruned to these before client generation (scripts/regen_nacsos_client.sh).
+# Extend the list, regenerate, and the new endpoints appear in the vendored client.
+paths:
+  - /api/ping/
+  - /api/login/token
+  - /api/login/token/{token_id}
+  - /api/login/my-tokens
+  - /api/login/me
+  - /api/export/annotations/{export_format}
+  - /api/export/project/label_options/{scheme_id}
+  - /api/export/project/baseinfo
+  - /api/users/list/project/{project_id}
+  - /api/annotations/annotate/scope/counts/{assignment_scope_id}
+  - /api/annotations/annotate/assignments/scope/{assignment_scope_id}
+  - /api/annotations/assignments/scope/
+  - /api/annotations/config/scopes/bulk-add/
+  - /api/annotations/bot/scopes
+  - /api/annotations/config/items/
+  - /api/imports/import
+  - /api/imports/import/{import_id}
+  - /api/imports/import/{import_id}/revisions
+  - /api/imports/import/{import_id}/count/
+  - /api/pipes/artefacts/files/upload
+  - /api/item/info/{item_id}
+  - /api/project/items/{item_type}/list/{page}/{page_size}
