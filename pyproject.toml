@@ -1,9 +1,6 @@
 [build-system]
 build-backend = "hatchling.build"
-requires = [
-  "hatch-vcs",
-  "hatchling",
-]
+requires = [ "hatch-vcs", "hatchling" ]
 
 [project]
 name = "what-works-repo"
@@ -57,23 +54,25 @@ build.targets.wheel.packages = [
 ]
 
 [tool.uv]
+required-version = ">=0.13.6"
 sources.destiny-deet = { git = "https://github.com/destiny-evidence/data-extraction-evaluation-toolkit.git", rev = "feature/465-decisions-backend" }
 sources.nacsos_data = [
   { git = "git+https://gitlab.pik-potsdam.de/mcc-apsis/nacsos/nacsos-data.git", tag = "v0.24.53" },
 ]
 sources.what_works_repo = { workspace = true, editable = true }
+exclude-newer = "P5D"
 workspace.members = [
   ".",
 ]
 
 [tool.ruff]
 lint.select = [
-  "B",
-  "E",
-  "F",
-  "I",
-  "UP",
-  "W",
+  "B",  # flake8-bugbear
+  "E",  # pycodestyle errors
+  "F",  # Pyflakes
+  "I",  # isort
+  "UP", # pyupgrade
+  "W",  # pycodestyle warnings
 ]
 
 [tool.ty]

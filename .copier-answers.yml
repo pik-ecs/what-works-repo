@@ -1,9 +1,9 @@
-_commit: 5fc2505
+_commit: v0.1.0
 _src_path: gh:mcc-apsis/ecs-repo-template
 dvc_ts01_remote_path: /data/rd5/ecs/DVC/wwcs
 dvc_ts01_user: maxca
 project_description: ''
 projectname: what-works-repo
-python_version: '3.14'
+python_version: '3.13'
 use_dvc: true
 use_vscode: true
