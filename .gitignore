@@ -23,3 +23,18 @@ llm_annotations.json
 docs/figures/pairwise_kappa.svg
 docs/figures/pairwise_kappa_bars.svg
 docs/figures/coder_pr.svg
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# DVC
+.dvc/config.local
+.dvc/tmp/
+.dvc/cache
+

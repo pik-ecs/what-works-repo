@@ -17,7 +17,7 @@ repos:
 
   - repo: https://github.com/astral-sh/ty-pre-commit
     # ty version.
-    rev: ac85803d0443afba1e0700690366fd2d39e02580 # v0.0.65
+    rev: 18b2b8bb1b9b90d2d21283756e89b07fc9c747bf # v0.0.95
     hooks:
       - id: ty
 
@@ -25,3 +25,12 @@ repos:
     rev: fdfb5d929c2a630a7c705a3d70dbdd69ed44334b  # v2.0.3
     hooks:
       - id: snakefmt
+
+  - repo: local
+    hooks:
+      - id: dvc-pushed
+        name: DVC data is pushed to remote
+        entry: uv run python hooks/check_dvc_pushed.py
+        language: system
+        files: '(\.dvc|dvc\.lock|dvc\.yaml)$'
+        pass_filenames: false
