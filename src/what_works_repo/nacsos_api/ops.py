@@ -8,9 +8,6 @@ from what_works_repo.nacsos_api import NacsosApiError, call, get_client
 from what_works_repo.nacsos_api.generated.api.annotations.get_num_assignments_for_scope_api_annotations_annotate_scope_counts_assignment_scope_id_get import (  # noqa: E501
     sync as get_num_assignments_for_scope,
 )
-from what_works_repo.nacsos_api.generated.api.export.export_annotations_api_export_annotations_export_format_post import (  # noqa: E501
-    sync as export_annotations,
-)
 from what_works_repo.nacsos_api.generated.api.export.get_export_label_options_api_export_project_label_options_scheme_id_get import (  # noqa: E501
     sync as get_export_label_options,
 )
@@ -70,6 +67,10 @@ def export_annotations_jsonl(**body_kwargs: Any) -> list[dict]:
 
     Rows carry the item fields plus one `<key>|<value>` column per label option
     (1/0/None), `item_id`, and `username` (`RESOLVED` for resolved bot rows).
+
+    The generated endpoint json-parses 200 responses, which fails on the JSONL
+    file body, so this posts through the wrapper's httpx client directly
+    (token signing and refresh still apply), like upload_file does.
     """
     body = ExportRequest(
         labels=project_labels(settings.nacsos.scheme_id),
@@ -77,10 +78,15 @@ def export_annotations_jsonl(**body_kwargs: Any) -> list[dict]:
         ignore_repeat=True,
         **body_kwargs,
     )
-    content = call(
-        export_annotations,
-        export_format=ExportTypeEnum.JSONL,
-        body=body,
-        max_results=1_000_000,
+    client = get_client().get_httpx_client()
+    response = client.post(
+        f"/api/export/annotations/{ExportTypeEnum.JSONL.value}",
+        params={"max_results": 1_000_000},
+        json=body.to_dict(),
+        headers={"x-project-id": settings.nacsos.project_id},
     )
-    return [json.loads(line) for line in content.decode().splitlines() if line]
+    if response.status_code != 200:
+        raise NacsosApiError(
+            f"JSONL export failed ({response.status_code}): {response.text[:300]}"
+        )
+    return [json.loads(line) for line in response.text.splitlines() if line]
