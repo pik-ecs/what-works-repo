@@ -10,7 +10,7 @@ from typing import Annotated
 
 import typer
 
-from what_works_repo.constants import FIGURES_DIR
+from what_works_repo.constants import FIGURES_DIR, ZOTERO_DIR
 from what_works_repo.reporting import plots
 
 app = typer.Typer(help="Reporting and docs-figure commands.")
@@ -42,3 +42,29 @@ def figures(
     ]
     plots.annotation_progress(output_dir / "progress.svg", exclude=exclude)
     plots.render_irr(min_shared=min_shared, output_dir=output_dir, exclude=exclude)
+
+
+@app.command()
+def zotero_export(
+    output: Annotated[
+        Path,
+        typer.Option("-o", "--output", help="Where to write the RIS file."),
+    ] = ZOTERO_DIR / "included.ris",
+    refresh: Annotated[
+        bool,
+        typer.Option(
+            help="Force a re-fetch of the cached scopus_id -> NACSOS item_id table."
+        ),
+    ] = False,
+) -> None:
+    """Export the locally-included items as RIS for a shared Zotero library.
+
+    Each record keeps its NACSOS ID in the Extra field, so imported items can be
+    mapped back to NACSOS records and to their PDF attachments later.
+    """
+    from what_works_repo.zotero_export import run
+
+    records, with_id = run(output, refresh=refresh)
+    typer.echo(
+        f"Wrote {records} records ({with_id} with a NACSOS ID in Extra) to {output}"
+    )

@@ -7,7 +7,7 @@ The stages, and the files they read and write, are described in `docs/workflow.m
 ## Quick start
 ```bash
 uv sync
-uv run dvc pull           # fetch the data; see Data (DVC) below for the one-time remote setup
+uv run nacsos-login       # store your personal NACSOS API token (first run per token lifetime)
 uv run snakemake          # runs until a manual step is needed, then stops
 ```
 
@@ -55,6 +55,7 @@ complete the step and re-run.
    screening is complete.
 
 ## Prompt development in deet
+
 
 See the deet [documentation](https://destiny-evidence.github.io/data-extraction-evaluation-toolkit/development/)
 for more information on how to use deet.

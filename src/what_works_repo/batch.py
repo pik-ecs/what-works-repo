@@ -108,7 +108,12 @@ class Batch:
 
 
 def collect_annotations() -> "pd.DataFrame":
-    """Collect all human and deet annotations."""
+    """Collect every final annotation verdict.
+
+    Human annotations and human resolutions of DEET annotations always count.
+    Raw DEET annotations count only where the document has no human resolution,
+    i.e. yolo'd (unchecked) DEET verdicts.
+    """
     import pandas as pd
 
     batch_dfs = []
@@ -122,6 +127,15 @@ def collect_annotations() -> "pd.DataFrame":
                 batch.deet_resolved_annotations, usecols=["document_id", "incl"]
             )
             batch_llm["annotator"] = "llm"
+            if batch.deet_annotations.exists():
+                batch_deet = pd.read_csv(
+                    batch.deet_annotations, usecols=["document_id", "incl"]
+                )
+                batch_deet = batch_deet[
+                    ~batch_deet["document_id"].isin(batch_llm["document_id"])
+                ]
+                batch_deet["annotator"] = "llm"
+                batch_llm = pd.concat([batch_llm, batch_deet], ignore_index=True)
             batch_df = pd.concat([batch_human, batch_llm], ignore_index=True)
 
             batch_df["batch"] = batch.number

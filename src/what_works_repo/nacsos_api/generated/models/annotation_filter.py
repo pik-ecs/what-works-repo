@@ -1,0 +1,144 @@
+from __future__ import annotations
+
+from collections.abc import Mapping
+from typing import Any, TypeVar, BinaryIO, TextIO, TYPE_CHECKING, Generator
+
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
+
+from ..types import UNSET, Unset
+
+from ..types import UNSET, Unset
+from typing import cast
+from typing import Literal, cast
+
+
+
+
+
+
+T = TypeVar("T", bound="AnnotationFilter")
+
+
+
+@_attrs_define
+class AnnotationFilter:
+    """ 
+        Attributes:
+            incl (bool):
+            filter_ (Literal['annotation'] | Unset):  Default: 'annotation'.
+            scopes (list[str] | None | Unset):
+            scheme (None | str | Unset):
+     """
+
+    incl: bool
+    filter_: Literal['annotation'] | Unset = 'annotation'
+    scopes: list[str] | None | Unset = UNSET
+    scheme: None | str | Unset = UNSET
+    additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
+
+
+
+
+
+    def to_dict(self) -> dict[str, Any]:
+        incl = self.incl
+
+        filter_ = self.filter_
+
+        scopes: list[str] | None | Unset
+        if isinstance(self.scopes, Unset):
+            scopes = UNSET
+        elif isinstance(self.scopes, list):
+            scopes = self.scopes
+
+
+        else:
+            scopes = self.scopes
+
+        scheme: None | str | Unset
+        if isinstance(self.scheme, Unset):
+            scheme = UNSET
+        else:
+            scheme = self.scheme
+
+
+        field_dict: dict[str, Any] = {}
+        field_dict.update(self.additional_properties)
+        field_dict.update({
+            "incl": incl,
+        })
+        if filter_ is not UNSET:
+            field_dict["filter"] = filter_
+        if scopes is not UNSET:
+            field_dict["scopes"] = scopes
+        if scheme is not UNSET:
+            field_dict["scheme"] = scheme
+
+        return field_dict
+
+
+
+    @classmethod
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        d = dict(src_dict)
+        incl = d.pop("incl")
+
+        filter_ = cast(Literal['annotation'] | Unset , d.pop("filter", UNSET))
+        if filter_ != 'annotation'and not isinstance(filter_, Unset):
+            raise ValueError(f"filter must match const 'annotation', got '{filter_}'")
+
+        def _parse_scopes(data: object) -> list[str] | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, list):
+                    raise TypeError()
+                scopes_type_0 = cast(list[str], data)
+
+                return scopes_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(list[str] | None | Unset, data)
+
+        scopes = _parse_scopes(d.pop("scopes", UNSET))
+
+
+        def _parse_scheme(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        scheme = _parse_scheme(d.pop("scheme", UNSET))
+
+
+        annotation_filter = cls(
+            incl=incl,
+            filter_=filter_,
+            scopes=scopes,
+            scheme=scheme,
+        )
+
+
+        annotation_filter.additional_properties = d
+        return annotation_filter
+
+    @property
+    def additional_keys(self) -> list[str]:
+        return list(self.additional_properties.keys())
+
+    def __getitem__(self, key: str) -> Any:
+        return self.additional_properties[key]
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        self.additional_properties[key] = value
+
+    def __delitem__(self, key: str) -> None:
+        del self.additional_properties[key]
+
+    def __contains__(self, key: str) -> bool:
+        return key in self.additional_properties
