@@ -1,4 +1,3 @@
-import asyncio
 import datetime
 import uuid
 from pathlib import Path
@@ -6,16 +5,6 @@ from pathlib import Path
 import pandas as pd
 import typer
 from deet.data_models.project import DeetProject, ExperimentArtefacts
-from nacsos_data.db import get_engine_async
-from nacsos_data.db.crud.annotations import (
-    store_assignments,
-    upsert_assignment_scope,
-)
-from nacsos_data.models.annotations import (
-    AssignmentModel,
-    AssignmentScopeModel,
-    AssignmentStatus,
-)
 
 from what_works_repo.batch import Batch
 from what_works_repo.configurations import (
@@ -24,6 +13,23 @@ from what_works_repo.configurations import (
 from what_works_repo.constants import DEET_RUN_SKIP, DEET_SCOPE_SENTINEL
 from what_works_repo.deet_orchestration.deet_annotator import DeetAnnotator
 from what_works_repo.logging import logger
+from what_works_repo.nacsos_api import call
+from what_works_repo.nacsos_api.generated.api.annotations.bulk_add_assignment_api_annotations_config_scopes_bulk_add_put import (  # noqa: E501
+    sync as bulk_add_assignment,
+)
+from what_works_repo.nacsos_api.generated.api.annotations.get_items_with_count_api_annotations_config_items_get import (  # noqa: E501
+    sync as get_items_with_count,
+)
+from what_works_repo.nacsos_api.generated.api.annotations.put_assignment_scope_api_annotations_assignments_scope_put import (  # noqa: E501
+    sync as put_assignment_scope,
+)
+from what_works_repo.nacsos_api.generated.api.item.get_item_info_api_item_info_item_id_get import (  # noqa: E501
+    sync as get_item_info,
+)
+from what_works_repo.nacsos_api.generated.models import (
+    AssignmentScopeModel,
+    BulkAddPayload,
+)
 from what_works_repo.settings import settings
 
 
@@ -64,7 +70,7 @@ def annotate(annotator: DeetAnnotator, annotation_df: pd.DataFrame) -> pd.DataFr
     return annotation_df
 
 
-async def assign_deet_verification_scope(
+def assign_deet_verification_scope(
     predicted_positive_ids: list[str], scheme_id: str, scope_name: str
 ) -> str:
     """
@@ -78,36 +84,31 @@ async def assign_deet_verification_scope(
     """
     if not predicted_positive_ids or not settings.nacsos.deet_check_users:
         return DEET_SCOPE_SENTINEL
-    db_engine = get_engine_async("config/.env")
 
-    new_scope_id = uuid.uuid4()
-    scope = AssignmentScopeModel(
-        assignment_scope_id=new_scope_id,
-        annotation_scheme_id=scheme_id,
-        name=f"{scope_name}__human_resolution",
-        description="Human review of deet-predicted positives",
-    )
-    await upsert_assignment_scope(scope, db_engine)
-
-    new_assignments = [
-        AssignmentModel(
-            assignment_id=uuid.uuid4(),
+    new_scope_id = str(uuid.uuid4())
+    call(
+        put_assignment_scope,
+        body=AssignmentScopeModel(
             assignment_scope_id=new_scope_id,
-            user_id=user_id,
-            item_id=item_id,
             annotation_scheme_id=scheme_id,
-            status=AssignmentStatus.OPEN,
-        )
-        for item_id in predicted_positive_ids
-        for user_id in settings.nacsos.deet_check_users
-    ]
-    await store_assignments(
-        db_engine=db_engine, assignments=new_assignments, use_commit=True
+            name=f"{scope_name}__human_resolution",
+            description="Human review of deet-predicted positives",
+        ),
     )
-    return str(new_scope_id)
+    for user_id in settings.nacsos.deet_check_users:
+        call(
+            bulk_add_assignment,
+            body=BulkAddPayload(
+                user_id=user_id,
+                scope_id=new_scope_id,
+                scheme_id=scheme_id,
+                item_ids=predicted_positive_ids,
+            ),
+        )
+    return new_scope_id
 
 
-async def get_items_to_annotate(
+def get_items_to_annotate(
     annotation_config: DeetAnnotationConfig,
 ) -> pd.DataFrame:
     """From all unassigned documents, return a dataframe of documents.
@@ -117,31 +118,21 @@ async def get_items_to_annotate(
      - name (title)
      - abstract (abstract)
     """
-    from nacsos_data.db.schemas import AcademicItem, Assignment
-    from sqlalchemy import exists, select
+    unassigned = [
+        str(item.item_id) for item in call(get_items_with_count) if item.num_total == 0
+    ][: annotation_config.n_annotations]
 
-    db_engine = get_engine_async("config/.env")
-
-    async with db_engine.session() as session:
-        # Get academic items in project with no assignments
-        stmt = (
-            select(
-                AcademicItem.scopus_id,
-                AcademicItem.title,
-                AcademicItem.text,
-                AcademicItem.item_id,
-            )
-            .where(
-                AcademicItem.project_id == settings.nacsos.project_id,
-                ~exists(select(1).where(Assignment.item_id == AcademicItem.item_id)),
-            )
-            .limit(annotation_config.n_annotations)
-        )
-        rows = await session.execute(stmt)
-
-        df = pd.DataFrame(rows, columns=["document_id", "name", "abstract", "item_id"])
-
-    return df
+    return pd.DataFrame(
+        [
+            {
+                "document_id": str(item.scopus_id),
+                "name": item.title,
+                "abstract": item.text,
+                "item_id": str(item.item_id),
+            }
+            for item in (call(get_item_info, item_id=item_id) for item_id in unassigned)
+        ]
+    )
 
 
 def get_items_to_resolve(
@@ -160,10 +151,10 @@ def get_items_to_resolve(
     return items_to_resolve
 
 
-async def _main(
+def _main(
     annotator: DeetAnnotator, annotation_config: DeetAnnotationConfig, batch: Batch
 ) -> None:
-    to_annotate = await get_items_to_annotate(annotation_config)
+    to_annotate = get_items_to_annotate(annotation_config)
     logger.info(f"{len(to_annotate)} items to annotate.")
     annotated_df = annotate(annotator, to_annotate)
     annotated_df.to_csv(batch.deet_annotations, index=False)
@@ -172,7 +163,7 @@ async def _main(
     today = datetime.date.today()
     scope_name = f"{today.strftime('%Y_%m_%d')}_deet_batch_{batch.number}"
 
-    new_scope_id = await assign_deet_verification_scope(
+    new_scope_id = assign_deet_verification_scope(
         items_to_resolve, settings.nacsos.scheme_id, scope_name
     )
     batch.deet_resolution_scope.write_text(new_scope_id)
@@ -208,9 +199,7 @@ def main(
 
     experiment = resolve_deet_experiment(annotation_config.deet_run, batch.deet_config)
     annotator = DeetAnnotator(experiment=experiment)
-    asyncio.run(
-        _main(annotator=annotator, annotation_config=annotation_config, batch=batch)
-    )
+    _main(annotator=annotator, annotation_config=annotation_config, batch=batch)
 
 
 if __name__ == "__main__":

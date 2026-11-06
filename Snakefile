@@ -66,13 +66,9 @@ rule setup_nacsos_project:
     output:
         "data/metadata/nacsos_project.txt",
     run:
-        required = ["nacsos__project_id", "nacsos__import_id"]
-        missing = [k for k in required if not hasattr(settings, k)]
-        if missing:
-            raise ValueError(f"Missing required config keys: {', '.join(missing)}")
-        with open(output[0]) as f:
-            f.write(f"Project ID: {settings.nacsos__project_id}\n")
-            f.write(f"Import ID: {settings.nacsos__import_id}\n")
+        with open(output[0], "w") as f:
+            f.write(f"Project ID: {settings.nacsos.project_id}\n")
+            f.write(f"Import ID: {settings.nacsos.import_id}\n")
 
 
 rule import_scopus_to_nacsos:
@@ -82,15 +78,8 @@ rule import_scopus_to_nacsos:
         batch.imported,
     shell:
         # TODO: Should this be a new import each time?
-        # f"ssh -N -L 5433:localhost:5432 -L 19530:localhost:19530 {settings.ts01_username}@se164 -J {settings.ts01_username}@ts01 & "
-        # "TUNNEL_PID=$! ; "
-        # "trap 'kill $TUNNEL_PID' EXIT ; "
-        "uv run nacsos import ACADEMIC "
-        "--source {input} "
-        f"--project-id {settings.nacsos.project_id} "
-        "--config-file config/.env "
-        f"--import-id {settings.nacsos.import_id} "
-        "2>&1 | tee {output}.log && "
+        "uv run python src/what_works_repo/nacsos_rw/import_items_to_nacsos.py "
+        "{input} {batch.number} && "
         "echo 'import successful' > {output}"
 
 

@@ -19,8 +19,27 @@ deet.log
 llm_annotations.json
 
 .cache/
+api/.openapi_pruned.json
+
+# one-off maintenance scripts, kept locally only
+src/what_works_repo/nacsos_rw/remove_unassigned.py
 
 # IRR figures are rendered locally for discussion, not committed
 docs/figures/pairwise_kappa.svg
 docs/figures/pairwise_kappa_bars.svg
 docs/figures/coder_pr.svg
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# DVC
+.dvc/config.local
+.dvc/tmp/
+.dvc/cache
+

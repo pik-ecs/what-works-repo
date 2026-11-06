@@ -7,7 +7,7 @@ The stages, and the files they read and write, are described in `docs/workflow.m
 ## Quick start
 ```bash
 uv sync
-uv run dvc pull           # fetch the data; see Data (DVC) below for the one-time remote setup
+uv run nacsos-login       # store your personal NACSOS API token (first run per token lifetime)
 uv run snakemake          # runs until a manual step is needed, then stops
 ```
 
@@ -55,3 +55,30 @@ complete the step and re-run.
    screening is complete.
 
 ## Prompt development in deet
+
+
+See the deet [documentation](https://destiny-evidence.github.io/data-extraction-evaluation-toolkit/development/)
+for more information on how to use deet.
+
+Each batch is a deet project (listed under `deet_projects`).
+There is also a "megabatch" containing all records from all batches. 
+
+To develop prompts in a batch, change into the directory, e.g.
+```sh
+cd deet_projects/batch_1
+```
+
+You will need to add a `.env` file into that batch, containing the azure api key.
+
+Before you start working on prompts, you will need to add some documents to the 
+prompt development set:
+
+```sh
+deet experiments splits
+```
+
+Then, after editing your prompts in `prompts/prompt_definitions.csv`, you can run 
+
+```sh
+deet experiments evaluate --config-path default_extraction_config.yaml # (or any config file)
+```

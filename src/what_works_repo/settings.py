@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import numpy as np
 from pydantic import BaseModel, Field
@@ -20,6 +21,41 @@ class NacsosSettings(BaseModel):
     )
     deet_user_id: str
     deet_username: str
+
+
+DEFAULT_NACSOS_API_BASE_URL = "https://nacsos.pik-potsdam.de/nacsos-core"
+
+
+def nacsos_token_file() -> Path:
+    """Per-user token file written by `nacsos-login`."""
+    config_home = Path(os.environ.get("XDG_CONFIG_HOME", "~/.config")).expanduser()
+    return config_home / "nacsos" / "token"
+
+
+def nacsos_token() -> str | None:
+    """Resolve the API token: env var, then the per-user token file."""
+    if settings.nacsos_api and settings.nacsos_api.api_token:
+        return settings.nacsos_api.api_token
+    token_file = nacsos_token_file()
+    if token_file.is_file():
+        return token_file.read_text().strip() or None
+    return None
+
+
+class NacsosApiSettings(BaseModel):
+    """Settings for the nacsos-core REST API (base_url from config/snakemake.yaml).
+
+    The personal token comes from `nacsos_token()`: the NACSOS_API__API_TOKEN
+    env var, else the file written by `uv run nacsos-login`.
+    NACSOS_API__API_USERNAME/PASSWORD env vars additionally enable auto-renewal
+    on expiry, for unattended runs.
+    """
+
+    base_url: str = DEFAULT_NACSOS_API_BASE_URL
+    api_token: str | None = None
+    api_username: str | None = None
+    api_password: str | None = None
+    timeout_seconds: int = 600
 
 
 class TransformerModel(BaseModel):
@@ -63,11 +99,12 @@ class DeetEvalSettings(BaseModel):
 class Settings(BaseSettings):
     """Settings for the what works repo."""
 
-    model_config = SettingsConfigDict(env_file="config/.env", extra="ignore")
+    model_config = SettingsConfigDict(env_nested_delimiter="__", extra="ignore")
 
     ts01_username: str = Field(default_factory=lambda: os.getenv("USER", ""))
 
     nacsos: NacsosSettings
+    nacsos_api: NacsosApiSettings | None = None
     ml: MLSettings
     sample_size: int = 20000
 
@@ -84,7 +121,6 @@ class Settings(BaseSettings):
     ):
         return (
             env_settings,
-            dotenv_settings,
             YamlConfigSettingsSource(settings_cls, yaml_file="config/snakemake.yaml"),
         )
 
