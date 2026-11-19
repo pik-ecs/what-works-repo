@@ -69,7 +69,7 @@ def export_assignments(assignment_scope_id: str) -> list[dict]:
             settings.nacsos.inclusion_key: row[incl_column],
         }
         for row in rows
-        if row[incl_column] is not None
+        if row[incl_column] is not None and row["text"] is not None
     ]
 
 
