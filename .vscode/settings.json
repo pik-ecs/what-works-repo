@@ -7,6 +7,9 @@
     }
   },
   "ty.lint.enable": true,
+  "workbench.editorAssociations": {
+    "file:/c:/Users/arletter/what-works-repo/deet_projects/batch_7/data-extraction-experiments/2026-11-12_10-58-29_luna_2.3/error_analysis.csv": "default"
+  },
   // "files.associations": {
   //   "Snakefile": "python",
   //   "*.smk": "python"

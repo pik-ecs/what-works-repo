@@ -1,0 +1,21 @@
+{
+  "extraction_run_id": "2026-11-16_13-32-18_luna_2.4_2",
+  "format_version": 1,
+  "attributes": [
+    {
+      "attribute_id": 0,
+      "attribute_label": "incl",
+      "attribute_type": "bool",
+      "counts": {
+        "n_gold_instances": 153
+      },
+      "metrics": {
+        "accuracy": 0.8431372549019608,
+        "recall": 0.5869565217391305,
+        "precision": 0.84375,
+        "f1_score": 0.6923076923076923,
+        "n_labels": 46.0
+      }
+    }
+  ]
+}

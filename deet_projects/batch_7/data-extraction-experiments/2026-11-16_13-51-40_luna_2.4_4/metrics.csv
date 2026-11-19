@@ -1,0 +1,2 @@
+extraction_run_id,attribute_id,attribute_label,attribute_type,n_gold_instances,accuracy,recall,precision,f1_score,n_labels
+2026-11-16_13-51-40_luna_2.4_4,0,incl,bool,153,0.8562091503267973,0.6304347826086957,0.8529411764705882,0.725,46.0
