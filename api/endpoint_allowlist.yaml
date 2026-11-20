@@ -14,6 +14,7 @@ paths:
   - /api/annotations/annotate/scope/counts/{assignment_scope_id}
   - /api/annotations/annotate/assignments/scope/{assignment_scope_id}
   - /api/annotations/assignments/scope/
+  - /api/annotations/assignments/scopes/
   - /api/annotations/config/scopes/bulk-add/
   - /api/annotations/bot/scopes
   - /api/annotations/config/items/
