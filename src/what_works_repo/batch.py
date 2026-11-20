@@ -69,6 +69,12 @@ class Batch:
         return self.dir / "deet_annotations.csv"
 
     @property
+    def deet_annotations_partial(self) -> Path:
+        """In-progress DEET output; not a rule output, so snakemake cleanup
+        on a failed job cannot delete it between chunks."""
+        return self.dir / "deet_annotations_partial.csv"
+
+    @property
     def deet_resolution_scope(self) -> Path:
         return self.dir / "deet_resolution_scope_id.txt"
 

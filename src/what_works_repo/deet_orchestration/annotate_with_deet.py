@@ -240,19 +240,40 @@ def get_items_to_resolve(
     return [str(i) for i in items_to_resolve if isinstance(i, str) and i]
 
 
+def _promote_partial(batch: Batch) -> None:
+    """Merge the partial file into the final one once the run is complete.
+
+    The final file's existence then always means a complete annotation pass;
+    snakemake rules that declare it as output can trust it.
+    """
+    frames = [
+        pd.read_csv(p)
+        for p in (batch.deet_annotations, batch.deet_annotations_partial)
+        if p.exists()
+    ]
+    if frames:
+        pd.concat(frames, ignore_index=True).drop_duplicates("document_id").to_csv(
+            batch.deet_annotations, index=False
+        )
+    batch.deet_annotations_partial.unlink(missing_ok=True)
+
+
 def _main(
     annotator: DeetAnnotator, annotation_config: DeetAnnotationConfig, batch: Batch
 ) -> None:
     to_annotate = get_items_to_annotate(annotation_config, batch)
-    done = _annotated_ids(batch.deet_annotations)
+    done = _annotated_ids(batch.deet_annotations_partial) | _annotated_ids(
+        batch.deet_annotations
+    )
     to_annotate = to_annotate[~to_annotate["document_id"].astype(str).isin(done)]
     logger.info(f"{len(to_annotate)} items to annotate ({len(done)} already done).")
-    missing = annotate(annotator, to_annotate, batch.deet_annotations)
+    missing = annotate(annotator, to_annotate, batch.deet_annotations_partial)
     if missing:
         raise ValueError(
             f"DEET failed to extract {len(missing)} documents, e.g. {missing[:5]}. "
             "Re-run to retry only the missing ones."
         )
+    _promote_partial(batch)
     annotated_df = pd.read_csv(batch.deet_annotations)
     items_to_resolve = get_items_to_resolve(annotated_df, annotation_config)
 
