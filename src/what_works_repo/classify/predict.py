@@ -177,6 +177,8 @@ class TextPredictor:
 
         table = dataset.to_table(filter=filt)
         df = cast(pd.DataFrame, table.to_pandas())
+        # a document can be predicted once per raw file that contains it
+        df = df.drop_duplicates("scopus_ids")
         sample_size = min(df.shape[0], self.next_batch_config.n_items)
         return df.sample(sample_size)
 
@@ -203,15 +205,21 @@ def iterate_batches():
 
 
 def write_next_items(batch: Batch, df: pd.DataFrame):
-    """Write the next batch of items"""
+    """Write the next batch of items, once per scopus_id.
+
+    The same record can occur in several raw batch files; keep the first.
+    """
+    written: set[str] = set()
     with batch.items.open("w") as out:
         for name, group in df.groupby("batch_file"):
             filter_ids = set(group["scopus_ids"])
             with open(Path(RAW_DATA) / str(name)) as f:
                 for line in f:
                     if data := ScopusAPI.translate_record(json.loads(line)):
-                        if data.scopus_id in filter_ids:
+                        sid = str(data.scopus_id)
+                        if sid in filter_ids and sid not in written:
                             out.write(data.model_dump_json() + "\n")
+                            written.add(sid)
 
 
 def main(
