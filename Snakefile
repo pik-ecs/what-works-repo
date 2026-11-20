@@ -121,7 +121,7 @@ rule export_batch_original_annotations:
 rule create_deet_subproject:
     """Create a deet project that uses annotations as gold standard data"""
     input:
-        batch.annotations,
+        ancient(batch.annotations),
     output:
         batch.deet_config,
     shell:
