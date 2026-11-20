@@ -54,7 +54,20 @@ class Batch:
 
     @property
     def model(self) -> Path:
+        """Sentinel recording the winning candidate; the weights live in model_dir."""
         return self.dir / "model.txt"
+
+    @property
+    def model_dir(self) -> Path:
+        return self.dir / "model"
+
+    @property
+    def prioritisation_dir(self) -> Path:
+        return self.dir / "prioritisation"
+
+    @property
+    def prioritisation_report(self) -> Path:
+        return self.prioritisation_dir / "report.json"
 
     @property
     def deet_config(self) -> Path:

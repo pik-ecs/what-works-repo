@@ -12,6 +12,7 @@ from nacsos_data.util.academic.apis.scopus import ScopusAPI
 from transformers import pipeline
 
 from what_works_repo.batch import Batch
+from what_works_repo.classify.models import load_classifier
 from what_works_repo.constants import BATCH_DIR, PREDICTION_DIR, RAW_DATA
 from what_works_repo.logging import logger
 from what_works_repo.settings import settings
@@ -26,7 +27,7 @@ class TextPredictor:
 
     @property
     def prediction_dir(self):
-        if settings.ml.train_model:
+        if not self.next_batch_config.use_pretrained_models:
             # FIXME: should we have a new dir for each batch?
             # or should we be able to configure whether to do this?
             return PREDICTION_DIR / "prioritisation"
@@ -73,13 +74,12 @@ class TextPredictor:
         return scores
 
     def predict_prioritisation_model(self, texts: list[str]) -> pd.DataFrame:
-        # TODO Implement training and loading trained model
-        raise NotImplementedError(
-            "Training a new model not yet implemented. Cannot load model."
-        )
+        clf = load_classifier(self.batch.model_dir)
+        probs = clf.predict_proba(texts)
+        return pd.DataFrame({settings.nacsos.inclusion_key: probs})
 
     def predict(self, texts: list[str]) -> pd.DataFrame:
-        if settings.ml.train_model:
+        if not self.next_batch_config.use_pretrained_models:
             pred_df = self.predict_prioritisation_model(texts)
         else:
             if not settings.ml.pretrained_models:
@@ -136,15 +136,23 @@ class TextPredictor:
                 pred_df = self.predict(texts)
                 pred_df["scopus_ids"] = scopus_ids
                 pred_df["batch_file"] = jsonl_file.name
-                logger.debug(
-                    pred_df[
-                        ["relevant", "10 - 3. Quantitative", "19 - 0. Ex-post"]
-                    ].describe(percentiles=[0.25, 0.5, 0.75, 0.9, 0.95, 0.99])
-                )
+                debug_cols = [
+                    c
+                    for c in ["relevant", "10 - 3. Quantitative", "19 - 0. Ex-post"]
+                    if c in pred_df.columns
+                ]
+                if debug_cols:
+                    logger.debug(
+                        pred_df[debug_cols].describe(
+                            percentiles=[0.25, 0.5, 0.75, 0.9, 0.95, 0.99]
+                        )
+                    )
 
-                self.save_predictions_file(
-                    pred_df, [model.label for model in settings.ml.pretrained_models]
-                )
+                if self.next_batch_config.use_pretrained_models:
+                    pred_cols = [model.label for model in settings.ml.pretrained_models]
+                else:
+                    pred_cols = [settings.nacsos.inclusion_key]
+                self.save_predictions_file(pred_df, pred_cols)
                 sentinel.touch()
 
     def filter(self, skip_ids: list[str]) -> pd.DataFrame:
