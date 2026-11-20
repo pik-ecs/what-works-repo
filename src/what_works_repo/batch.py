@@ -113,36 +113,42 @@ class Batch:
         return [cls(n) for n in sorted(numbers)]
 
 
-def _read_incl(path: Path) -> "pd.DataFrame":
-    """Read document_id/incl, tolerating stubs"""
+def _read_incl(path: Path, include_text: bool = False) -> "pd.DataFrame":
+    """Read document_id/incl (+ name/abstract), tolerating stubs"""
     import pandas as pd
 
+    cols = ["document_id", "incl"] + (["name", "abstract"] if include_text else [])
     df = pd.read_csv(path)
     if not {"document_id", "incl"} <= set(df.columns):
         if not df.empty:
             raise ValueError(f"{path}: {len(df)} rows but no document_id column")
-        return pd.DataFrame(columns=["document_id", "incl"])
-    return df[["document_id", "incl"]]
+        return pd.DataFrame(columns=cols)
+    if include_text and not {"name", "abstract"} <= set(df.columns):
+        raise ValueError(f"{path}: {len(df)} rows but no name/abstract columns")
+    return df[cols]
 
 
-def collect_annotations() -> "pd.DataFrame":
+def collect_annotations(include_text: bool = False) -> "pd.DataFrame":
     """Collect every final annotation verdict.
 
     Human annotations and human resolutions of DEET annotations always count.
     Raw DEET annotations count only where the document has no human resolution,
     i.e. yolo'd (unchecked) DEET verdicts.
+
+    With include_text=True, also carry name/abstract as exported from NACSOS
+    (byte-identical to the predictor's title/text fields).
     """
     import pandas as pd
 
     batch_dfs = []
     for batch in Batch.existing():
         if batch.annotations.exists():
-            batch_human = _read_incl(batch.annotations)
+            batch_human = _read_incl(batch.annotations, include_text)
             batch_human["annotator"] = "human"
-            batch_llm = _read_incl(batch.deet_resolved_annotations)
+            batch_llm = _read_incl(batch.deet_resolved_annotations, include_text)
             batch_llm["annotator"] = "llm"
             if batch.deet_annotations.exists():
-                batch_deet = _read_incl(batch.deet_annotations)
+                batch_deet = _read_incl(batch.deet_annotations, include_text)
                 batch_deet = batch_deet[
                     ~batch_deet["document_id"].isin(batch_llm["document_id"])
                 ]
