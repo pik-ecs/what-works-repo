@@ -6,6 +6,7 @@ lazily so the sklearn path runs without the ml extra installed.
 """
 
 import json
+from collections import OrderedDict
 from pathlib import Path
 from typing import Any
 
@@ -34,35 +35,69 @@ BERT_DEFAULTS: dict[str, Any] = {
 }
 
 
+_TFIDF_CACHE: "OrderedDict[tuple, TfidfVectorizer]" = OrderedDict()
+_TFIDF_CACHE_MAX = 12
+
+
+def fitted_tfidf(x: list[str], **params: Any) -> TfidfVectorizer:
+    """TfidfVectorizer fitted on x, cached per (contents, params) within the process.
+
+    Tuning refits the same fold text across trials that draw the same vectorizer
+    params; the classifier re-fit stays uncached. Bounded LRU keeps memory flat.
+    Param lists (tuples reloaded from the Optuna study db) are normalized so the
+    cache key is hashable.
+    """
+    params = {k: tuple(v) if isinstance(v, list) else v for k, v in params.items()}
+    key = (hash(tuple(x)), tuple(sorted(params.items())))
+    vec = _TFIDF_CACHE.get(key)
+    if vec is None:
+        vec = TfidfVectorizer(**params).fit(x)
+        _TFIDF_CACHE[key] = vec
+        while len(_TFIDF_CACHE) > _TFIDF_CACHE_MAX:
+            _TFIDF_CACHE.popitem(last=False)
+    else:
+        _TFIDF_CACHE.move_to_end(key)
+    return vec
+
+
 class SklearnClassifier:
-    """TfidfVectorizer + linear classifier, params keyed by pipeline step name."""
+    """TF-IDF + linear classifier, params keyed by former pipeline step name."""
 
     def __init__(self, estimator: str = "logreg", params: dict[str, Any] | None = None):
         self.estimator = estimator
         self.params = params or {}
-        self.pipeline = self._build()
-
-    def _build(self) -> Pipeline:
-        steps: list[tuple[str, Any]] = [("tfidf", TfidfVectorizer())]
-        if self.estimator == "logreg":
-            steps.append(("clf", LogisticRegression(max_iter=5000)))
-        elif self.estimator == "nb":
-            steps.append(("clf", MultinomialNB()))
-        else:
-            raise ValueError(f"Unknown estimator {self.estimator!r}")
-        return Pipeline(steps)
+        self._vec: TfidfVectorizer | None = None
+        self._clf: Any = None
 
     def fit(self, x: list[str], y: np.ndarray) -> "SklearnClassifier":
-        self.pipeline.set_params(**self.params)
-        self.pipeline.fit(x, y)
+        tfidf_params = {
+            k.removeprefix("tfidf__"): v
+            for k, v in self.params.items()
+            if k.startswith("tfidf__")
+        }
+        clf_params = {
+            k.removeprefix("clf__"): v
+            for k, v in self.params.items()
+            if k.startswith("clf__")
+        }
+        if self.estimator == "logreg":
+            clf: Any = LogisticRegression(max_iter=5000)
+        elif self.estimator == "nb":
+            clf = MultinomialNB()
+        else:
+            raise ValueError(f"Unknown estimator {self.estimator!r}")
+        self._vec = fitted_tfidf(x, **tfidf_params)
+        self._clf = clf.set_params(**clf_params).fit(self._vec.transform(x), y)
         return self
 
     def predict_proba(self, x: list[str]) -> np.ndarray:
-        return self.pipeline.predict_proba(x)[:, 1]
+        if self._vec is None or self._clf is None:
+            raise RuntimeError("Call fit() or load() before predict_proba()")
+        return self._clf.predict_proba(self._vec.transform(x))[:, 1]
 
     def save(self, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)
-        joblib.dump(self.pipeline, path / SKLEARN_FILE)
+        joblib.dump({"vec": self._vec, "clf": self._clf}, path / SKLEARN_FILE)
         (path / INFO_FILE).write_text(
             json.dumps(
                 {"type": "sklearn", "estimator": self.estimator, "params": self.params},
@@ -74,7 +109,12 @@ class SklearnClassifier:
     def load(cls, path: Path) -> "SklearnClassifier":
         info = json.loads((path / INFO_FILE).read_text())
         clf = cls(estimator=info["estimator"], params=info["params"])
-        clf.pipeline = joblib.load(path / SKLEARN_FILE)
+        blob = joblib.load(path / SKLEARN_FILE)
+        if isinstance(blob, Pipeline):
+            # Pre-2025-11 artifacts stored a fitted Pipeline.
+            clf._vec, clf._clf = blob.named_steps["tfidf"], blob.named_steps["clf"]
+        else:
+            clf._vec, clf._clf = blob["vec"], blob["clf"]
         return clf
 
 

@@ -4,7 +4,7 @@
 # Tune step only: each model's tuning_<model>.json is the sole output; select_model.slurm
 # turns the finished tunings into the saved winner. Set BATCH_N to the labels' batch.
 
-#SBATCH --time=08:00:00
+#SBATCH --time=16:00:00
 #SBATCH --nodes=1
 #SBATCH --mem=32G
 #SBATCH --mail-user="maxca"

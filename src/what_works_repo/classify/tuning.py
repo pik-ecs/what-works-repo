@@ -27,8 +27,8 @@ from what_works_repo.logging import logger
 DEFAULT_SEED = 42
 N_FOLDS = 5
 BERT_FOLDS = 3
-TRIALS_CPU = 300
-TRIALS_GPU = 50
+TRIALS_CPU = 20
+TRIALS_GPU = 20
 
 
 @dataclass(frozen=True)
@@ -56,7 +56,8 @@ def _logreg_space(trial: optuna.Trial) -> dict[str, Any]:
         "clf__C": trial.suggest_float("C", 0.01, 100.0, log=True),
         "clf__class_weight": class_weight,
         "tfidf__min_df": trial.suggest_int("min_df", 1, 5),
-        "tfidf__max_df": trial.suggest_float("max_df", 0.6, 1.0),
+        # Categorical so vectorizer refits are cache hits across trials.
+        "tfidf__max_df": trial.suggest_categorical("max_df", [0.6, 0.7, 0.8, 0.9, 1.0]),
         "tfidf__ngram_range": (1, trial.suggest_int("ngram_max", 1, 2)),
     }
 
@@ -65,7 +66,7 @@ def _nb_space(trial: optuna.Trial) -> dict[str, Any]:
     return {
         "clf__alpha": trial.suggest_float("alpha", 1e-3, 5.0, log=True),
         "tfidf__min_df": trial.suggest_int("min_df", 1, 5),
-        "tfidf__max_df": trial.suggest_float("max_df", 0.6, 1.0),
+        "tfidf__max_df": trial.suggest_categorical("max_df", [0.6, 0.7, 0.8, 0.9, 1.0]),
         "tfidf__ngram_range": (1, trial.suggest_int("ngram_max", 1, 2)),
     }
 
@@ -130,16 +131,32 @@ CANDIDATES: dict[str, Candidate] = {
 
 
 def out_of_fold_probs(
-    candidate: Candidate, x: list[str], y: np.ndarray, params: dict[str, Any], folds
+    candidate: Candidate,
+    x: list[str],
+    y: np.ndarray,
+    params: dict[str, Any],
+    folds: list[tuple[np.ndarray, np.ndarray]],
+    trial: optuna.Trial | None = None,
+    seed: int = DEFAULT_SEED,
 ) -> np.ndarray:
-    """Score every document once with a model that never saw it."""
+    """Score every document once with a model that never saw it.
+
+    With an Optuna trial, report the pooled AUC over the folds completed so far;
+    the pruner may abort the trial before the remaining folds train.
+    """
     probs = np.zeros(len(x))
-    for train_idx, test_idx in folds:
+    seen = np.zeros(len(x), dtype=bool)
+    for k, (train_idx, test_idx) in enumerate(folds):
         clf = candidate.builder(dict(params))
         if candidate.kind == "bert":
-            clf.params["seed"] = DEFAULT_SEED
+            clf.params["seed"] = seed
         clf.fit([x[i] for i in train_idx], y[train_idx])
         probs[test_idx] = clf.predict_proba([x[i] for i in test_idx])
+        if trial is not None:
+            seen[test_idx] = True
+            trial.report(pooled_auc(y[seen], probs[seen]), step=k)
+            if k < len(folds) - 1 and trial.should_prune():
+                raise optuna.TrialPruned(f"fold {k} interim AUC below running median")
     return probs
 
 
@@ -152,33 +169,60 @@ def tune_candidate(
     n_trials: int | None = None,
     seed: int = DEFAULT_SEED,
 ) -> dict[str, Any]:
-    """Optuna TPE search maximizing pooled out-of-fold AUC; writes a result JSON."""
+    """Optuna TPE search maximizing pooled out-of-fold AUC; writes a result JSON.
+
+    The study persists to tuning_<model>.db, so a cancelled or timed-out job
+    resumes where it died; the fingerprint user attr refuses to mix trials run
+    against a different label set.
+    """
     folds = folds[: candidate.n_folds]
     n_trials = n_trials or candidate.n_trials
+    out_dir.mkdir(parents=True, exist_ok=True)
+    db_path = out_dir / f"tuning_{candidate.name}.db"
 
     def objective(trial: optuna.Trial) -> float:
         params = candidate.space(trial)
         # best_trial.params holds un-prefixed suggest names; builders need this dict.
         trial.set_user_attr("params", params)
         try:
-            probs = out_of_fold_probs(candidate, x, y, params, folds)
+            probs = out_of_fold_probs(
+                candidate, x, y, params, folds, trial=trial, seed=seed
+            )
         except (ValueError, RuntimeError) as e:
             logger.warning(f"trial {trial.number} failed: {e}")
             return 0.0
         return pooled_auc(y, probs)
 
     sampler = optuna.samplers.TPESampler(
-        seed=seed, n_startup_trials=max(n_trials // 2, 10)
+        seed=seed, n_startup_trials=max(n_trials // 2, 5)
     )
     study = optuna.create_study(
-        direction="maximize", sampler=sampler, study_name=candidate.name
+        storage=f"sqlite:///{db_path}",
+        direction="maximize",
+        sampler=sampler,
+        pruner=optuna.pruners.MedianPruner(n_startup_trials=max(n_trials // 4, 3)),
+        study_name=candidate.name,
+        load_if_exists=True,
     )
+    fingerprint = (len(x), int(y.sum()), seed)
+    prior = study.user_attrs.get("fingerprint")
+    if prior is not None and tuple(prior) != fingerprint:
+        raise ValueError(
+            f"{db_path.name} holds trials for label set {prior}, current "
+            f"{fingerprint}; delete the .db to re-tune"
+        )
+    study.set_user_attr("fingerprint", fingerprint)
     optuna.logging.set_verbosity(optuna.logging.WARNING)
-    study.optimize(objective, n_trials=n_trials, catch=(Exception,))
+    already = len(study.get_trials(deepcopy=False))
+    if already < n_trials:
+        study.optimize(objective, n_trials=n_trials - already, catch=(Exception,))
 
-    best = study.best_trial
+    completed = [t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE]
+    if not completed:
+        raise ValueError(f"{candidate.name}: no trial completed successfully")
+    best = max(completed, key=lambda t: t.value)
     best_params = best.user_attrs["params"]
-    probs = out_of_fold_probs(candidate, x, y, best_params, folds)
+    probs = out_of_fold_probs(candidate, x, y, best_params, folds, seed=seed)
     # Self-contained record: select mode rebuilds everything from this file alone.
     tuning = {
         "model": candidate.name,
