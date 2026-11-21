@@ -123,17 +123,25 @@ def select_and_fit(batch: Batch, seed: int) -> None:
     df, x, y = _labeled_xy(batch.number)
     tunings = _load_tunings(batch, x, y, seed)
     # Rescore every candidate from its stored OOF scores on a common per-fold
-    # rank scale. Idempotent when the JSON already holds ranks; it repairs
-    # older ones, whose pooled metrics mixed per-fold raw probability scales.
+    # rank scale, over scored docs only (a candidate tuned on fewer than all
+    # folds leaves the rest unscored; pooling them would rank the zeros below
+    # every positive). Idempotent when the JSON already holds ranks; repairs
+    # older ones whose pooled metrics mixed raw scales and unscored docs.
     folds_all = shared_folds(y, seed)
+    covered_by: dict[str, np.ndarray] = {}
     for name, tuning in tunings.items():
-        folds = folds_all[: CANDIDATES[name].n_folds]
+        folds = folds_all[: tuning.get("n_folds", CANDIDATES[name].n_folds)]
+        covered = np.zeros(len(x), dtype=bool)
+        for _, test_idx in folds:
+            covered[test_idx] = True
+        covered_by[name] = covered
         probs = rank_within_folds(np.asarray(tuning["oof_probs"], dtype=float), folds)
         tuning["oof_probs"] = probs
-        tuning["auc"] = pooled_auc(y, probs)
-        tuning["ap"] = pooled_ap(y, probs)
-        tuning.update(depth_to_recall(y, probs))
-        tuning.update(positive_rank_summary(y, probs))
+        tuning["auc"] = pooled_auc(y[covered], probs[covered])
+        tuning["ap"] = pooled_ap(y[covered], probs[covered])
+        tuning["n_scored"] = int(covered.sum())
+        tuning.update(depth_to_recall(y[covered], probs[covered]))
+        tuning.update(positive_rank_summary(y[covered], probs[covered]))
     winner_name = max(tunings, key=lambda k: tunings[k]["auc"])
     winner = CANDIDATES[winner_name]
     logger.info(
@@ -158,7 +166,8 @@ def select_and_fit(batch: Batch, seed: int) -> None:
             "batch": df["batch"],
             "incl": y,
             **{
-                f"score_{name}": tuning["oof_probs"] for name, tuning in tunings.items()
+                f"score_{name}": np.where(covered_by[name], tuning["oof_probs"], np.nan)
+                for name, tuning in tunings.items()
             },
         }
     ).to_csv(batch.prioritisation_dir / f"oof_batch{batch.number}.csv", index=False)

@@ -157,14 +157,17 @@ def out_of_fold_probs(
     folds: list[tuple[np.ndarray, np.ndarray]],
     trial: optuna.Trial | None = None,
     seed: int = DEFAULT_SEED,
-) -> np.ndarray:
+) -> tuple[np.ndarray, np.ndarray]:
     """Score every document once with a model that never saw it.
 
-    Returns within-fold percentile ranks, not raw probabilities (see
-    rank_within_folds). With an Optuna trial, report the mean per-fold AUC over
-    the folds completed so far; the pruner may abort early on bad folds.
+    Returns (within-fold percentile ranks, coverage mask) — see
+    rank_within_folds; candidates using fewer than all folds leave unscored
+    documents at 0.0 and out of every metric. With an Optuna trial, report the
+    mean per-fold AUC over the folds completed so far; the pruner may abort
+    early on bad folds.
     """
     probs = np.zeros(len(x))
+    covered = np.zeros(len(x), dtype=bool)
     fold_aucs: list[float] = []
     for k, (train_idx, test_idx) in enumerate(folds):
         clf = candidate.builder(dict(params))
@@ -172,6 +175,7 @@ def out_of_fold_probs(
             clf.params["seed"] = seed
         clf.fit([x[i] for i in train_idx], y[train_idx])
         probs[test_idx] = clf.predict_proba([x[i] for i in test_idx])
+        covered[test_idx] = True
         if trial is not None:
             # Mean of per-fold AUCs: scale-free, so interim values stay comparable
             # across trials even when folds calibrate differently.
@@ -179,7 +183,7 @@ def out_of_fold_probs(
             trial.report(float(np.mean(fold_aucs)), step=k)
             if k < len(folds) - 1 and trial.should_prune():
                 raise optuna.TrialPruned(f"fold {k} interim AUC below running median")
-    return rank_within_folds(probs, folds)
+    return rank_within_folds(probs, folds), covered
 
 
 def top_seed_trials(db_path: Path, study_name: str, n: int = 5) -> list[dict[str, Any]]:
@@ -230,13 +234,13 @@ def tune_candidate(
         # best_trial.params holds un-prefixed suggest names; builders need this dict.
         trial.set_user_attr("params", params)
         try:
-            probs = out_of_fold_probs(
+            probs, covered = out_of_fold_probs(
                 candidate, x, y, params, folds, trial=trial, seed=seed
             )
         except (ValueError, RuntimeError) as e:
             logger.warning(f"trial {trial.number} failed: {e}")
             return 0.0
-        return pooled_auc(y, probs)
+        return pooled_auc(y[covered], probs[covered])
 
     sampler = optuna.samplers.TPESampler(
         seed=seed, n_startup_trials=max(n_trials // 2, 5)
@@ -283,26 +287,30 @@ def tune_candidate(
         raise ValueError(f"{candidate.name}: no trial completed successfully")
     best = max(completed, key=lambda t: t.value)
     best_params = best.user_attrs["params"]
-    probs = out_of_fold_probs(candidate, x, y, best_params, folds, seed=seed)
+    probs, covered = out_of_fold_probs(candidate, x, y, best_params, folds, seed=seed)
     # Self-contained record: select mode rebuilds everything from this file alone.
+    # Metrics cover scored docs only; candidates using fewer than all folds
+    # leave the rest at 0.0, and pooling them would rank them below everything.
     tuning = {
         "model": candidate.name,
         "model_name": candidate.model_name,
         "n_trials": n_trials,
+        "n_folds": len(folds),
         "n_docs": len(x),
+        "n_scored": int(covered.sum()),
         "n_pos": int(y.sum()),
         "seed": seed,
         "best_params": best_params,
-        "auc": pooled_auc(y, probs),
-        "ap": pooled_ap(y, probs),
+        "auc": pooled_auc(y[covered], probs[covered]),
+        "ap": pooled_ap(y[covered], probs[covered]),
         "trials": [
             {"number": t.number, "value": t.value, "state": t.state.name}
             for t in study.trials
         ],
         "oof_probs": probs.tolist(),
     }
-    tuning.update(depth_to_recall(y, probs))
-    tuning.update(positive_rank_summary(y, probs))
+    tuning.update(depth_to_recall(y[covered], probs[covered]))
+    tuning.update(positive_rank_summary(y[covered], probs[covered]))
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / f"tuning_{candidate.name}.json").write_text(np_json_dumps(tuning))
     logger.info(
