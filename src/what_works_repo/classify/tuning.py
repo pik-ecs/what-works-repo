@@ -15,7 +15,12 @@ import numpy as np
 import optuna
 from sklearn.model_selection import StratifiedKFold
 
-from what_works_repo.classify.metrics import pooled_auc
+from what_works_repo.classify.metrics import (
+    depth_to_recall,
+    pooled_ap,
+    pooled_auc,
+    positive_rank_summary,
+)
 from what_works_repo.classify.models import BertClassifier, SklearnClassifier
 from what_works_repo.logging import logger
 
@@ -174,24 +179,31 @@ def tune_candidate(
     best = study.best_trial
     best_params = best.user_attrs["params"]
     probs = out_of_fold_probs(candidate, x, y, best_params, folds)
-    result = {
+    # Self-contained record: select mode rebuilds everything from this file alone.
+    tuning = {
         "model": candidate.name,
         "model_name": candidate.model_name,
         "n_trials": n_trials,
+        "n_docs": len(x),
+        "n_pos": int(y.sum()),
+        "seed": seed,
         "best_params": best_params,
         "auc": pooled_auc(y, probs),
+        "ap": pooled_ap(y, probs),
         "trials": [
             {"number": t.number, "value": t.value, "state": t.state.name}
             for t in study.trials
         ],
+        "oof_probs": probs.tolist(),
     }
+    tuning.update(depth_to_recall(y, probs))
+    tuning.update(positive_rank_summary(y, probs))
     out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / f"tuning_{candidate.name}.json").write_text(np_json_dumps(result))
+    (out_dir / f"tuning_{candidate.name}.json").write_text(np_json_dumps(tuning))
     logger.info(
-        f"{candidate.name}: best pooled AUC {result['auc']:.4f} params={best_params}"
+        f"{candidate.name}: best pooled AUC {tuning['auc']:.4f} params={best_params}"
     )
-    result["oof_probs"] = probs
-    return result
+    return tuning
 
 
 def np_json_dumps(obj: Any) -> str:

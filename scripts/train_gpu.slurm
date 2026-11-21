@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# Fine-tune the BERT-family prioritisation candidates on GPU (one array task per model).
-# Set BATCH_N to the batch whose labels to train on and whose dirs receive the output.
+# Tune the BERT-family prioritisation candidates on GPU (one array task per model).
+# Tune step only: each model's tuning_<model>.json is the sole output; select_model.slurm
+# turns the finished tunings into the saved winner. Set BATCH_N to the labels' batch.
 
 #SBATCH --time=08:00:00
 #SBATCH --nodes=1

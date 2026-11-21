@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Tune the linear prioritisation candidates (single CPU task, both models).
+# Tune step only: outputs are tuning_<model>.json; select_model.slurm saves the winner.
 
 #SBATCH --time=02:00:00
 #SBATCH --nodes=1

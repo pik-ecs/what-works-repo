@@ -193,7 +193,8 @@ rule train_prioritisation_model:
     output:
         batch.model,
     shell:
-        "uv run python src/what_works_repo/classify/train.py {batch.number}"
+        "uv run python src/what_works_repo/classify/train.py {batch.number} && "
+        "uv run python src/what_works_repo/classify/train.py {batch.number} --select"
 
 
 rule predict:
