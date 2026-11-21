@@ -142,11 +142,21 @@ def select_and_fit(batch: Batch, seed: int) -> None:
         tuning["n_scored"] = int(covered.sum())
         tuning.update(depth_to_recall(y[covered], probs[covered]))
         tuning.update(positive_rank_summary(y[covered], probs[covered]))
-    winner_name = max(tunings, key=lambda k: tunings[k]["auc"])
+    # BERT candidates cover BERT_FOLDS folds and the sklearn pair all N_FOLDS;
+    # the slices are fixed across batches, so the winner is decided on the
+    # docs every candidate scored. auc above stays on each candidate's own
+    # coverage for the report.
+    common = np.ones(len(x), dtype=bool)
+    for covered in covered_by.values():
+        common &= covered
+    for tuning in tunings.values():
+        tuning["auc_common"] = pooled_auc(y[common], tuning["oof_probs"][common])
+    winner_name = max(tunings, key=lambda k: tunings[k]["auc_common"])
     winner = CANDIDATES[winner_name]
     logger.info(
-        f"Winner: {winner_name} (pooled AUC {tunings[winner_name]['auc']:.4f}); "
-        f"compared {', '.join(f'{k}={v["auc"]:.4f}' for k, v in tunings.items())}"
+        f"Winner: {winner_name} (AUC {tunings[winner_name]['auc_common']:.4f} on "
+        f"{int(common.sum())} common docs); compared "
+        f"{', '.join(f'{k}={v["auc_common"]:.4f}' for k, v in tunings.items())}"
     )
 
     report: dict[str, Any] = {
