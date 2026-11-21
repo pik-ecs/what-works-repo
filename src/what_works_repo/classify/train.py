@@ -7,10 +7,11 @@ The depth-to-recall report answers "how deep must we annotate to reach the posit
 
 Two modes so tuning can run as parallel cluster jobs without racing on shared
 outputs. Default (tune): each requested candidate writes its self-contained
-prioritisation/tuning_<model>.json (trials, best params, metrics, OOF probs) and
+prioritisation/tuning_<model>.json (trials, best params, metrics, OOF scores) and
 nothing else. --select: read every tuning_*.json, pick the argmax-AUC winner,
 refit it on all labels, and be the sole writer of model/, model.txt, report.json
-and oof_batch<N>.csv.
+and oof_batch<N>.csv. OOF scores are within-fold percentile ranks, one common
+scale for candidates whose fold models calibrate differently.
 """
 
 import json
@@ -21,10 +22,17 @@ import pandas as pd
 import typer
 
 from what_works_repo.batch import Batch, collect_annotations
+from what_works_repo.classify.metrics import (
+    depth_to_recall,
+    pooled_ap,
+    pooled_auc,
+    positive_rank_summary,
+)
 from what_works_repo.classify.tuning import (
     CANDIDATES,
     DEFAULT_SEED,
     np_json_dumps,
+    rank_within_folds,
     shared_folds,
     top_seed_trials,
     tune_candidate,
@@ -114,6 +122,18 @@ def select_and_fit(batch: Batch, seed: int) -> None:
     """Compare tuned candidates, refit the winner, write the pipeline outputs."""
     df, x, y = _labeled_xy(batch.number)
     tunings = _load_tunings(batch, x, y, seed)
+    # Rescore every candidate from its stored OOF scores on a common per-fold
+    # rank scale. Idempotent when the JSON already holds ranks; it repairs
+    # older ones, whose pooled metrics mixed per-fold raw probability scales.
+    folds_all = shared_folds(y, seed)
+    for name, tuning in tunings.items():
+        folds = folds_all[: CANDIDATES[name].n_folds]
+        probs = rank_within_folds(np.asarray(tuning["oof_probs"], dtype=float), folds)
+        tuning["oof_probs"] = probs
+        tuning["auc"] = pooled_auc(y, probs)
+        tuning["ap"] = pooled_ap(y, probs)
+        tuning.update(depth_to_recall(y, probs))
+        tuning.update(positive_rank_summary(y, probs))
     winner_name = max(tunings, key=lambda k: tunings[k]["auc"])
     winner = CANDIDATES[winner_name]
     logger.info(

@@ -13,6 +13,7 @@ from typing import Any
 
 import numpy as np
 import optuna
+from scipy.stats import rankdata
 from sklearn.model_selection import StratifiedKFold
 
 from what_works_repo.classify.metrics import (
@@ -130,6 +131,24 @@ CANDIDATES: dict[str, Candidate] = {
 }
 
 
+def rank_within_folds(
+    probs: np.ndarray, folds: list[tuple[np.ndarray, np.ndarray]]
+) -> np.ndarray:
+    """Replace each fold's scores with within-fold percentile ranks.
+
+    Fold models calibrate independently — a fine-tuned head's 0.2 in one fold can
+    mean more than 0.9 in another — so raw OOF probabilities are not comparable
+    across folds, and pooling them globally collapses cross-fold ranking for
+    poorly calibrated families. Ranks put every fold on one scale; monotone
+    within a fold, so single-fold metrics are unchanged and re-ranking is exact.
+    """
+    out = probs.astype(float, copy=True)
+    for _, test_idx in folds:
+        scores = out[test_idx]
+        out[test_idx] = rankdata(scores) / (len(scores) + 1.0)
+    return out
+
+
 def out_of_fold_probs(
     candidate: Candidate,
     x: list[str],
@@ -141,11 +160,12 @@ def out_of_fold_probs(
 ) -> np.ndarray:
     """Score every document once with a model that never saw it.
 
-    With an Optuna trial, report the pooled AUC over the folds completed so far;
-    the pruner may abort the trial before the remaining folds train.
+    Returns within-fold percentile ranks, not raw probabilities (see
+    rank_within_folds). With an Optuna trial, report the mean per-fold AUC over
+    the folds completed so far; the pruner may abort early on bad folds.
     """
     probs = np.zeros(len(x))
-    seen = np.zeros(len(x), dtype=bool)
+    fold_aucs: list[float] = []
     for k, (train_idx, test_idx) in enumerate(folds):
         clf = candidate.builder(dict(params))
         if candidate.kind == "bert":
@@ -153,23 +173,33 @@ def out_of_fold_probs(
         clf.fit([x[i] for i in train_idx], y[train_idx])
         probs[test_idx] = clf.predict_proba([x[i] for i in test_idx])
         if trial is not None:
-            seen[test_idx] = True
-            trial.report(pooled_auc(y[seen], probs[seen]), step=k)
+            # Mean of per-fold AUCs: scale-free, so interim values stay comparable
+            # across trials even when folds calibrate differently.
+            fold_aucs.append(pooled_auc(y[test_idx], probs[test_idx]))
+            trial.report(float(np.mean(fold_aucs)), step=k)
             if k < len(folds) - 1 and trial.should_prune():
                 raise optuna.TrialPruned(f"fold {k} interim AUC below running median")
-    return probs
+    return rank_within_folds(probs, folds)
 
 
 def top_seed_trials(db_path: Path, study_name: str, n: int = 5) -> list[dict[str, Any]]:
     """Best n configs from a finished study, for enqueuing into the next round's.
 
     Params only, never values: the next round's label pool is a superset, so old
-    AUCs are stale and the configs are re-evaluated on the new data.
+    AUCs are stale and the configs are re-evaluated on the new data. Pruned
+    trials count too — their stored value is the interim metric, and good
+    configs cut early deserve another look (with the pre-rank-scale BERT
+    studies, the genuinely good configs were exclusively pruned trials).
     """
     if not db_path.exists():
         return []
     study = optuna.load_study(storage=f"sqlite:///{db_path}", study_name=study_name)
-    done = [t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE]
+    done = [
+        t
+        for t in study.trials
+        if t.state in (optuna.trial.TrialState.COMPLETE, optuna.trial.TrialState.PRUNED)
+        and t.value is not None
+    ]
     return [t.params for t in sorted(done, key=lambda t: t.value, reverse=True)[:n]]
 
 
