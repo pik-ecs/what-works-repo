@@ -30,5 +30,6 @@ export UV_PROJECT_ENVIRONMENT=/home/maxca/software/WWCS/what-works-repo/.venv
 
 JOB_ID=$SLURM_ARRAY_TASK_ID
 NUM_JOBS=$SLURM_ARRAY_TASK_COUNT
+BATCH_N="${BATCH_N:-9}"
 
-.venv/bin/python src/what_works_repo/classify/predict.py 1 --job-id=$JOB_ID --num-jobs=$NUM_JOBS
+.venv/bin/python src/what_works_repo/classify/predict.py "$BATCH_N" --job-id=$JOB_ID --num-jobs=$NUM_JOBS
