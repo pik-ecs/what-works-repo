@@ -27,8 +27,8 @@ from what_works_repo.logging import logger
 DEFAULT_SEED = 42
 N_FOLDS = 5
 BERT_FOLDS = 3
-TRIALS_CPU = 20
-TRIALS_GPU = 20
+TRIALS_CPU = 100
+TRIALS_GPU = 25
 
 
 @dataclass(frozen=True)
@@ -160,6 +160,19 @@ def out_of_fold_probs(
     return probs
 
 
+def top_seed_trials(db_path: Path, study_name: str, n: int = 5) -> list[dict[str, Any]]:
+    """Best n configs from a finished study, for enqueuing into the next round's.
+
+    Params only, never values: the next round's label pool is a superset, so old
+    AUCs are stale and the configs are re-evaluated on the new data.
+    """
+    if not db_path.exists():
+        return []
+    study = optuna.load_study(storage=f"sqlite:///{db_path}", study_name=study_name)
+    done = [t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE]
+    return [t.params for t in sorted(done, key=lambda t: t.value, reverse=True)[:n]]
+
+
 def tune_candidate(
     candidate: Candidate,
     x: list[str],
@@ -168,12 +181,14 @@ def tune_candidate(
     out_dir: Path,
     n_trials: int | None = None,
     seed: int = DEFAULT_SEED,
+    seed_trials: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Optuna TPE search maximizing pooled out-of-fold AUC; writes a result JSON.
 
     The study persists to tuning_<model>.db, so a cancelled or timed-out job
     resumes where it died; the fingerprint user attr refuses to mix trials run
-    against a different label set.
+    against a different label set. seed_trials (e.g. from the previous batch,
+    via top_seed_trials) are enqueued into a fresh study before TPE starts.
     """
     folds = folds[: candidate.n_folds]
     n_trials = n_trials or candidate.n_trials
@@ -213,7 +228,23 @@ def tune_candidate(
         )
     study.set_user_attr("fingerprint", fingerprint)
     optuna.logging.set_verbosity(optuna.logging.WARNING)
-    already = len(study.get_trials(deepcopy=False))
+    # Enqueued (WAITING) trials are executed by optimize within its n_trials
+    # budget, so only started-or-finished trials count against it here.
+    already = len(
+        [
+            t
+            for t in study.get_trials(deepcopy=False)
+            if t.state != optuna.trial.TrialState.WAITING
+        ]
+    )
+    if already == 0 and seed_trials:
+        for params in seed_trials:
+            params = dict(params)
+            # positive_weight is only suggested for class_weight=weighted;
+            # enqueuing it otherwise draws an unused-param warning.
+            if params.get("class_weight") != "weighted":
+                params.pop("positive_weight", None)
+            study.enqueue_trial(params)
     if already < n_trials:
         study.optimize(objective, n_trials=n_trials - already, catch=(Exception,))
 

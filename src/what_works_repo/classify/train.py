@@ -26,6 +26,7 @@ from what_works_repo.classify.tuning import (
     DEFAULT_SEED,
     np_json_dumps,
     shared_folds,
+    top_seed_trials,
     tune_candidate,
 )
 from what_works_repo.logging import logger
@@ -58,10 +59,16 @@ def _labeled_xy(batch_number: int) -> tuple[pd.DataFrame, list[str], np.ndarray]
 
 
 def tune(batch: Batch, models: list[str], trials: int, seed: int) -> None:
-    """Tune each candidate on shared folds; one self-contained JSON per candidate."""
+    """Tune each candidate on shared folds; one self-contained JSON per candidate.
+
+    Each study is seeded with the previous batch's best configs, which the
+    superset label pool re-evaluates before TPE explores around them.
+    """
     _, x, y = _labeled_xy(batch.number)
     folds = shared_folds(y, seed)
+    prev_dir = Batch(batch.number - 1).prioritisation_dir
     for name in models:
+        seeds = top_seed_trials(prev_dir / f"tuning_{name}.db", name)
         tune_candidate(
             CANDIDATES[name],
             x,
@@ -70,6 +77,7 @@ def tune(batch: Batch, models: list[str], trials: int, seed: int) -> None:
             batch.prioritisation_dir,
             n_trials=trials or None,
             seed=seed,
+            seed_trials=seeds,
         )
 
 
