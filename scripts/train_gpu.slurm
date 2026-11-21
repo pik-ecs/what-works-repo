@@ -12,7 +12,7 @@
 #SBATCH --chdir=/home/maxca/what-works-repo
 #SBATCH --gres=gpu:1
 #SBATCH --partition=gpu
-#SBATCH --qos=gpumedium
+#SBATCH --qos=gpushort
 #SBATCH --cpus-per-task=8
 #SBATCH --mail-type=END,FAIL
 #SBATCH --array=0-1

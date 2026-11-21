@@ -9,7 +9,7 @@
 #SBATCH --output=data/logs/train_cpu_%j.out
 #SBATCH --error=data/logs/train_cpu_%j.err
 #SBATCH --chdir=/home/maxca/what-works-repo
-#SBATCH --partition=compute
+#SBATCH --partition=standard
 #SBATCH --qos=short
 #SBATCH --cpus-per-task=8
 #SBATCH --mail-type=END,FAIL
