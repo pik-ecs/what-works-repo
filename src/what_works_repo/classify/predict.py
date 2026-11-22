@@ -218,6 +218,8 @@ def write_next_items(batch: Batch, df: pd.DataFrame):
     The same record can occur in several raw batch files; keep the first.
     """
     written: set[str] = set()
+    # Snakemake creates output dirs; the manual slurm scripts don't.
+    batch.items.parent.mkdir(parents=True, exist_ok=True)
     with batch.items.open("w") as out:
         for name, group in df.groupby("batch_file"):
             filter_ids = set(group["scopus_ids"])
