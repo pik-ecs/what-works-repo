@@ -4,8 +4,8 @@
 #SBATCH --nodes=1
 #SBATCH --mem=16G
 #SBATCH --mail-user="maxca"
-#SBATCH --output=data/logs/predict_%j.out
-#SBATCH --error=data/logs/predict_%j.err
+#SBATCH --output=data/logs/predict_%a_%j.out
+#SBATCH --error=data/logs/predict_%a_%j.err
 #SBATCH --chdir=/home/maxca/what-works-repo
 #SBATCH --gres=gpu:1
 #SBATCH --partition=gpu
