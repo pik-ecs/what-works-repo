@@ -130,6 +130,11 @@ class TextPredictor:
                     if (data := ScopusAPI.translate_record(json.loads(line)))
                     and data.scopus_id not in skip_ids
                 ]
+                if not records:
+                    logger.info(f"Skipping {jsonl_file.name}, nothing left to score")
+                    partition_dir.mkdir(parents=True, exist_ok=True)
+                    sentinel.touch()
+                    continue
                 scopus_ids = [row.scopus_id for row in records]
                 texts = [(row.title or "") + " " + (row.text or "") for row in records]
                 logger.info(f"Predicting {len(records)} records from {jsonl_file}")
