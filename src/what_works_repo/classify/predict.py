@@ -173,10 +173,11 @@ class TextPredictor:
 
         table = dataset.to_table(filter=filt)
         sorted_table = table.sort_by([(settings.nacsos.inclusion_key, "descending")])
-        sample_size = min(len(sorted_table), self.next_batch_config.n_items)
-        top_table = sorted_table.slice(0, sample_size)
-        df = cast(pd.DataFrame, top_table.to_pandas())
-        return df
+        # Dedup before the slice so n_items counts distinct documents, as in
+        # _filter_pretrained; duplicates land at the top of the ranking.
+        df = cast(pd.DataFrame, sorted_table.to_pandas()).drop_duplicates("scopus_ids")
+        sample_size = min(len(df), self.next_batch_config.n_items)
+        return df.iloc[:sample_size]
 
     def _filter_pretrained(self, skip_ids: list[str]) -> pd.DataFrame:
         dataset = ds.dataset(self.prediction_dir, format="parquet", partitioning="hive")
