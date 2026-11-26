@@ -1,0 +1,6 @@
+attribute_id,attribute_label,value,extraction_run_id,metric_name
+0,incl,,2026-10-14_15-41-36_,accuracy
+0,incl,,2026-10-14_15-41-36_,recall
+0,incl,,2026-10-14_15-41-36_,precision
+0,incl,,2026-10-14_15-41-36_,f1_score
+0,incl,32.0,2026-10-14_15-41-36_,n_labels

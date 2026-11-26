@@ -1,0 +1,21 @@
+{
+  "extraction_run_id": "2026-10-26_11-19-34_deepseek_1.3.1",
+  "format_version": 1,
+  "attributes": [
+    {
+      "attribute_id": 0,
+      "attribute_label": "incl",
+      "attribute_type": "bool",
+      "counts": {
+        "n_gold_instances": 152
+      },
+      "metrics": {
+        "accuracy": 0.8092105263157895,
+        "recall": 0.7321428571428571,
+        "precision": 0.7454545454545455,
+        "f1_score": 0.7387387387387387,
+        "n_labels": 56.0
+      }
+    }
+  ]
+}

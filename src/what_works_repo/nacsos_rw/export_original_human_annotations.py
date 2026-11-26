@@ -40,9 +40,21 @@ def main(scope_path: Path, output_path: Path):
     scope_ids = read_scopes(scope_path)
     all_rows = [row for scope_id in scope_ids for row in export_annotations(scope_id)]
 
-    pd.DataFrame(all_rows).sort_values(["annotator", "document_id"]).to_csv(
-        output_path, index=False
-    )
+    annotations = pd.DataFrame(all_rows)
+    if annotations.empty:
+        # zero scopes (all-DEET batch); downstream readers expect a header
+        annotations = pd.DataFrame(
+            columns=[
+                "document_id",
+                "name",
+                "abstract",
+                "annotator",
+                settings.nacsos.inclusion_key,
+            ]
+        )
+    else:
+        annotations = annotations.sort_values(["annotator", "document_id"])
+    annotations.to_csv(output_path, index=False)
 
 
 if __name__ == "__main__":

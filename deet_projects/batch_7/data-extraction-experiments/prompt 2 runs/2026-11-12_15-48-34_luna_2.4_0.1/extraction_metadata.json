@@ -1,0 +1,403 @@
+{
+  "model": "gpt-6-luna",
+  "total_input_tokens": 205461,
+  "total_output_tokens": 0,
+  "total_cost_usd": 0.020544,
+  "per_document": {
+    "454215369": {
+      "input_tokens": 3804,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.353
+    },
+    "610166754": {
+      "input_tokens": 3696,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.189
+    },
+    "3846558": {
+      "input_tokens": 3740,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.202
+    },
+    "1940402": {
+      "input_tokens": 3818,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.286
+    },
+    "5756": {
+      "input_tokens": 3934,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.335
+    },
+    "8445": {
+      "input_tokens": 3835,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.183
+    },
+    "53146084": {
+      "input_tokens": 3926,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.185
+    },
+    "7373": {
+      "input_tokens": 3824,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.215
+    },
+    "658729341": {
+      "input_tokens": 3796,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.498
+    },
+    "5059633": {
+      "input_tokens": 3766,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.234
+    },
+    "25302": {
+      "input_tokens": 3829,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.22
+    },
+    "5653": {
+      "input_tokens": 4083,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.492
+    },
+    "1656": {
+      "input_tokens": 3804,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.205
+    },
+    "29711119": {
+      "input_tokens": 3801,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.226
+    },
+    "25276": {
+      "input_tokens": 3786,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.208
+    },
+    "50860": {
+      "input_tokens": 3888,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.193
+    },
+    "65319": {
+      "input_tokens": 3784,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.252
+    },
+    "14230365": {
+      "input_tokens": 3822,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.224
+    },
+    "4959209895": {
+      "input_tokens": 3932,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.227
+    },
+    "86614": {
+      "input_tokens": 3786,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.371
+    },
+    "278135": {
+      "input_tokens": 3791,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.259
+    },
+    "736587480": {
+      "input_tokens": 3716,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.222
+    },
+    "3024": {
+      "input_tokens": 3950,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.248
+    },
+    "8824": {
+      "input_tokens": 4130,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.347
+    },
+    "975571485": {
+      "input_tokens": 3971,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.181
+    },
+    "8518142": {
+      "input_tokens": 3850,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.272
+    },
+    "49884013": {
+      "input_tokens": 3813,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.233
+    },
+    "1737824792": {
+      "input_tokens": 4070,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.309
+    },
+    "3620": {
+      "input_tokens": 3999,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.223
+    },
+    "2126793062": {
+      "input_tokens": 4208,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.243
+    },
+    "191075": {
+      "input_tokens": 3943,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.191
+    },
+    "52262744": {
+      "input_tokens": 3837,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.2
+    },
+    "1130673876": {
+      "input_tokens": 3765,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.797
+    },
+    "8960": {
+      "input_tokens": 3876,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.215
+    },
+    "3328480": {
+      "input_tokens": 3719,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.214
+    },
+    "196341": {
+      "input_tokens": 3765,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.248
+    },
+    "73722": {
+      "input_tokens": 3894,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.225
+    },
+    "2419766": {
+      "input_tokens": 3928,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.184
+    },
+    "1380797": {
+      "input_tokens": 3966,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.188
+    },
+    "26825519": {
+      "input_tokens": 3822,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.435
+    },
+    "3048922": {
+      "input_tokens": 4067,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.258
+    },
+    "552860": {
+      "input_tokens": 4017,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.258
+    },
+    "714687456": {
+      "input_tokens": 3775,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.236
+    },
+    "2947634": {
+      "input_tokens": 3867,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.295
+    },
+    "35799": {
+      "input_tokens": 3925,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.206
+    },
+    "751055": {
+      "input_tokens": 3907,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.645
+    },
+    "9664800": {
+      "input_tokens": 3733,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 1.445
+    },
+    "6561333": {
+      "input_tokens": 3990,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.274
+    },
+    "35530": {
+      "input_tokens": 3890,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.245
+    },
+    "9345927": {
+      "input_tokens": 3821,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 1.047
+    },
+    "45244596": {
+      "input_tokens": 3874,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.216
+    },
+    "773469": {
+      "input_tokens": 4234,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.189
+    },
+    "9672468": {
+      "input_tokens": 3694,
+      "output_tokens": 0,
+      "parsing_seconds": null,
+      "parsing_skipped": true,
+      "llm_call_seconds": 0.329
+    }
+  },
+  "total_pipeline_duration_seconds": 18.093,
+  "stage_durations_seconds": {
+    "annotation_conversion": 1.293,
+    "prompt_population": 0.006,
+    "document_preparation": 0.0,
+    "llm_extraction": 16.746,
+    "artifact_export": 0.024
+  },
+  "notes": {
+    "total_pipeline_duration_seconds": "Wall-clock time for the extraction run, from loading project data through export of experiment snapshots. Includes time spent answering the interactive config wizard when no config file is provided.",
+    "stage_durations_seconds": {
+      "annotation_conversion": "Load and normalise the gold-standard import into documents and attributes.",
+      "prompt_population": "Attach custom prompts from the project prompt CSV. Zero if skipped.",
+      "document_preparation": "Load linked documents from cache or parse/read PDF and markdown sources. See per_document.parsing_seconds.",
+      "llm_extraction": "LLM extraction for each document. See per_document.llm_call_seconds.",
+      "artifact_export": "Write prompts snapshot, config snapshot, and this metadata file."
+    },
+    "per_document": {
+      "parsing_seconds": "Parse/read time during document preparation; null when parsing_skipped is true.",
+      "parsing_skipped": "True when full text came from cache and was not parsed this run.",
+      "llm_call_seconds": "Wall-clock time for the LLM request, including local prompt setup."
+    }
+  },
+  "timestamp": "2026-11-12T15:48:50.901214Z"
+}

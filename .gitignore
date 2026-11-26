@@ -14,6 +14,7 @@ site/
 **/__pycache__/*
 
 deet.log
+*.log
 
 llm_annotations.json
 

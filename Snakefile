@@ -121,7 +121,7 @@ rule export_batch_original_annotations:
 rule create_deet_subproject:
     """Create a deet project that uses annotations as gold standard data"""
     input:
-        batch.annotations,
+        ancient(batch.annotations),
     output:
         batch.deet_config,
     shell:
@@ -193,7 +193,8 @@ rule train_prioritisation_model:
     output:
         batch.model,
     shell:
-        "uv run python src/what_works_repo/classify/train.py {batch.number}"
+        "uv run python src/what_works_repo/classify/train.py {batch.number} && "
+        "uv run python src/what_works_repo/classify/train.py {batch.number} --select"
 
 
 rule predict:

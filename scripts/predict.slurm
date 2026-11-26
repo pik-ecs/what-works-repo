@@ -4,12 +4,12 @@
 #SBATCH --nodes=1
 #SBATCH --mem=16G
 #SBATCH --mail-user="maxca"
-#SBATCH --output=data/logs/predict_%j.out
-#SBATCH --error=data/logs/predict_%j.err
+#SBATCH --output=data/logs/predict_%a_%j.out
+#SBATCH --error=data/logs/predict_%a_%j.err
 #SBATCH --chdir=/home/maxca/what-works-repo
 #SBATCH --gres=gpu:1
 #SBATCH --partition=gpu
-#SBATCH --qos=gpumedium
+#SBATCH --qos=gpushort
 #SBATCH --cpus-per-task=2
 #SBATCH --mail-type=END,FAIL
 #SBATCH --array=0-7
@@ -30,5 +30,6 @@ export UV_PROJECT_ENVIRONMENT=/home/maxca/software/WWCS/what-works-repo/.venv
 
 JOB_ID=$SLURM_ARRAY_TASK_ID
 NUM_JOBS=$SLURM_ARRAY_TASK_COUNT
+BATCH_N="${BATCH_N:-9}"
 
-.venv/bin/python src/what_works_repo/classify/predict.py 1 --job-id=$JOB_ID --num-jobs=$NUM_JOBS
+.venv/bin/python src/what_works_repo/classify/predict.py "$BATCH_N" --job-id=$JOB_ID --num-jobs=$NUM_JOBS

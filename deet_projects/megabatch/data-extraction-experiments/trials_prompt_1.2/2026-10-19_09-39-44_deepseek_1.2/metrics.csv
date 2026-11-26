@@ -1,0 +1,2 @@
+extraction_run_id,attribute_id,attribute_label,attribute_type,n_gold_instances,accuracy,recall,precision,f1_score,n_labels
+2026-10-19_09-39-44_deepseek_1.2,0,incl,bool,52,0.8269230769230769,0.8333333333333334,0.7142857142857143,0.7692307692307693,18.0

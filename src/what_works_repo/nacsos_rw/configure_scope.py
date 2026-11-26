@@ -5,23 +5,24 @@ after the batch's import, with completion counts, and writes the selected
 IDs to the file the export rules consume.
 """
 
-import asyncio
 import json
 import sys
 from datetime import UTC, datetime, timedelta
 
 import typer
 from InquirerPy import inquirer
-from nacsos_data.db import get_engine_async
-from nacsos_data.db.crud.annotations import (
-    read_assignment_counts_for_scope,
-    read_assignment_scopes_for_project,
-)
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 
 from what_works_repo.batch import Batch
+from what_works_repo.nacsos_api import call
+from what_works_repo.nacsos_api.generated.api.annotations.get_assignment_scopes_for_project_api_annotations_assignments_scopes_get import (  # noqa: E501
+    sync as get_assignment_scopes_for_project,
+)
+from what_works_repo.nacsos_api.generated.api.annotations.get_num_assignments_for_scope_api_annotations_annotate_scope_counts_assignment_scope_id_get import (  # noqa: E501
+    sync as get_num_assignments_for_scope,
+)
 from what_works_repo.settings import settings
 
 # allowance for clock skew between this machine and the NACSOS database
@@ -32,7 +33,7 @@ def _as_utc(dt: datetime) -> datetime:
     return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
 
 
-async def candidate_scopes(batch: Batch) -> list[dict]:
+def candidate_scopes(batch: Batch) -> list[dict]:
     """Project scopes created after the batch was imported, with counts.
 
     DEET human-resolution scopes cover the same documents but are created by
@@ -41,29 +42,28 @@ async def candidate_scopes(batch: Batch) -> list[dict]:
     cutoff = (
         datetime.fromtimestamp(batch.imported.stat().st_mtime, tz=UTC) - CUTOFF_SLACK
     )
-    db_engine = get_engine_async("config/.env")
-    async with db_engine.session() as session:
-        scopes = await read_assignment_scopes_for_project(
-            project_id=settings.nacsos.project_id, session=session
+    scopes = call(get_assignment_scopes_for_project)
+    rows = []
+    for scope in scopes:
+        if str(scope.annotation_scheme_id) != settings.nacsos.scheme_id:
+            continue
+        created = _as_utc(scope.time_created) if scope.time_created else None
+        if created is None or created < cutoff:
+            continue
+        if (scope.name or "").endswith("__human_resolution"):
+            continue
+        counts = call(
+            get_num_assignments_for_scope,
+            assignment_scope_id=str(scope.assignment_scope_id),
         )
-        rows = []
-        for scope in scopes:
-            created = _as_utc(scope.time_created) if scope.time_created else None
-            if created is None or created < cutoff:
-                continue
-            if (scope.name or "").endswith("__human_resolution"):
-                continue
-            counts = await read_assignment_counts_for_scope(
-                assignment_scope_id=str(scope.assignment_scope_id), session=session
-            )
-            rows.append(
-                {
-                    "scope_id": str(scope.assignment_scope_id),
-                    "name": scope.name,
-                    "time_created": created,
-                    **counts.model_dump(),
-                }
-            )
+        rows.append(
+            {
+                "scope_id": str(scope.assignment_scope_id),
+                "name": scope.name,
+                "time_created": created,
+                **counts.to_dict(),
+            }
+        )
     return sorted(rows, key=lambda r: r["time_created"])
 
 
@@ -144,15 +144,15 @@ def main(batch_n: int):
         print(f"{batch.imported} not found - has this batch been imported yet?")
         raise typer.Exit(1)
     if not sys.stdin.isatty():
-        # ahead of the DB query: this path needs no data, and a missing DB
-        # tunnel would otherwise crash the headless run
+        # ahead of the API query, so a headless run gets instructions rather
+        # than an auth or connectivity error
         console.print(
             "[yellow]No terminal attached:[/] write the chosen scope IDs to "
             f"[bold]{batch.scope_ids}[/] as a JSON array of UUID strings, then "
             "re-run snakemake."
         )
         raise typer.Exit(1)
-    rows = asyncio.run(candidate_scopes(batch))
+    rows = candidate_scopes(batch)
     if not rows:
         imported_at = datetime.fromtimestamp(batch.imported.stat().st_mtime)
         console.print(
@@ -174,9 +174,8 @@ def main(batch_n: int):
     batch.scope_ids.write_text(
         json.dumps([r["scope_id"] for r in chosen], indent=2) + "\n"
     )
-    console.print(
-        f"[green]Wrote {len(chosen)} scope id(s)[/] to [bold]{batch.scope_ids}[/]"
-    )
+    for row in chosen:
+        console.print(f"selected: {row['name']} ({row['scope_id']})")
 
 
 if __name__ == "__main__":

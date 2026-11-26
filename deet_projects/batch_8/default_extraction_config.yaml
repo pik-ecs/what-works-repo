@@ -1,6 +1,12 @@
+method: llm
 provider: ollama
+max_workers: 1
 model: smollm:360m
-temperature: 0.1
+decision_model: null
+decision_api_type: openai
+decision_threshold: 0.5
+semantic_similarity_threshold: 0.5
+temperature: 1.0
 max_tokens: null
 max_context_tokens: 128000
 default_context_type: abstract_only
@@ -34,7 +40,14 @@ prompt_config:
     - If the document does not contain sufficient information to answer the question:\n\
     \     explain in Reasoning why the information is missing\n     leave Additional_text\
     \ blank\n\nOutput Format:\n-Provide one response per question, preserving the\
-    \ original question order\n-Return results in json format\n\nInput JSON:\n{input_json}\n"
+    \ original question order\n-Return results in json format\n"
+  decision_question_template: Does this document concern $label? $prompt
 dynamic_json_schema: true
 include_reasoning: true
 include_additional_text: true
+vocab_prompt_locations:
+- definition
+- scope_note
+edit_distance_match_threshold: 0.9
+vocabulary_path: null
+vocabulary_mapping_path: null

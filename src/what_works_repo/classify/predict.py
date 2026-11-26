@@ -12,6 +12,7 @@ from nacsos_data.util.academic.apis.scopus import ScopusAPI
 from transformers import pipeline
 
 from what_works_repo.batch import Batch
+from what_works_repo.classify.models import load_classifier
 from what_works_repo.constants import BATCH_DIR, PREDICTION_DIR, RAW_DATA
 from what_works_repo.logging import logger
 from what_works_repo.settings import settings
@@ -26,7 +27,7 @@ class TextPredictor:
 
     @property
     def prediction_dir(self):
-        if settings.ml.train_model:
+        if not self.next_batch_config.use_pretrained_models:
             # FIXME: should we have a new dir for each batch?
             # or should we be able to configure whether to do this?
             return PREDICTION_DIR / "prioritisation"
@@ -73,13 +74,12 @@ class TextPredictor:
         return scores
 
     def predict_prioritisation_model(self, texts: list[str]) -> pd.DataFrame:
-        # TODO Implement training and loading trained model
-        raise NotImplementedError(
-            "Training a new model not yet implemented. Cannot load model."
-        )
+        clf = load_classifier(self.batch.model_dir)
+        probs = clf.predict_proba(texts)
+        return pd.DataFrame({settings.nacsos.inclusion_key: probs})
 
     def predict(self, texts: list[str]) -> pd.DataFrame:
-        if settings.ml.train_model:
+        if not self.next_batch_config.use_pretrained_models:
             pred_df = self.predict_prioritisation_model(texts)
         else:
             if not settings.ml.pretrained_models:
@@ -130,21 +130,34 @@ class TextPredictor:
                     if (data := ScopusAPI.translate_record(json.loads(line)))
                     and data.scopus_id not in skip_ids
                 ]
+                if not records:
+                    logger.info(f"Skipping {jsonl_file.name}, nothing left to score")
+                    partition_dir.mkdir(parents=True, exist_ok=True)
+                    sentinel.touch()
+                    continue
                 scopus_ids = [row.scopus_id for row in records]
                 texts = [(row.title or "") + " " + (row.text or "") for row in records]
                 logger.info(f"Predicting {len(records)} records from {jsonl_file}")
                 pred_df = self.predict(texts)
                 pred_df["scopus_ids"] = scopus_ids
                 pred_df["batch_file"] = jsonl_file.name
-                logger.debug(
-                    pred_df[
-                        ["relevant", "10 - 3. Quantitative", "19 - 0. Ex-post"]
-                    ].describe(percentiles=[0.25, 0.5, 0.75, 0.9, 0.95, 0.99])
-                )
+                debug_cols = [
+                    c
+                    for c in ["relevant", "10 - 3. Quantitative", "19 - 0. Ex-post"]
+                    if c in pred_df.columns
+                ]
+                if debug_cols:
+                    logger.debug(
+                        pred_df[debug_cols].describe(
+                            percentiles=[0.25, 0.5, 0.75, 0.9, 0.95, 0.99]
+                        )
+                    )
 
-                self.save_predictions_file(
-                    pred_df, [model.label for model in settings.ml.pretrained_models]
-                )
+                if self.next_batch_config.use_pretrained_models:
+                    pred_cols = [model.label for model in settings.ml.pretrained_models]
+                else:
+                    pred_cols = [settings.nacsos.inclusion_key]
+                self.save_predictions_file(pred_df, pred_cols)
                 sentinel.touch()
 
     def filter(self, skip_ids: list[str]) -> pd.DataFrame:
@@ -160,10 +173,11 @@ class TextPredictor:
 
         table = dataset.to_table(filter=filt)
         sorted_table = table.sort_by([(settings.nacsos.inclusion_key, "descending")])
-        sample_size = min(len(sorted_table), self.next_batch_config.n_items)
-        top_table = sorted_table.slice(0, sample_size)
-        df = cast(pd.DataFrame, top_table.to_pandas())
-        return df
+        # Dedup before the slice so n_items counts distinct documents, as in
+        # _filter_pretrained; duplicates land at the top of the ranking.
+        df = cast(pd.DataFrame, sorted_table.to_pandas()).drop_duplicates("scopus_ids")
+        sample_size = min(len(df), self.next_batch_config.n_items)
+        return df.iloc[:sample_size]
 
     def _filter_pretrained(self, skip_ids: list[str]) -> pd.DataFrame:
         dataset = ds.dataset(self.prediction_dir, format="parquet", partitioning="hive")
@@ -177,6 +191,8 @@ class TextPredictor:
 
         table = dataset.to_table(filter=filt)
         df = cast(pd.DataFrame, table.to_pandas())
+        # a document can be predicted once per raw file that contains it
+        df = df.drop_duplicates("scopus_ids")
         sample_size = min(df.shape[0], self.next_batch_config.n_items)
         return df.sample(sample_size)
 
@@ -203,15 +219,23 @@ def iterate_batches():
 
 
 def write_next_items(batch: Batch, df: pd.DataFrame):
-    """Write the next batch of items"""
+    """Write the next batch of items, once per scopus_id.
+
+    The same record can occur in several raw batch files; keep the first.
+    """
+    written: set[str] = set()
+    # Snakemake creates output dirs; the manual slurm scripts don't.
+    batch.items.parent.mkdir(parents=True, exist_ok=True)
     with batch.items.open("w") as out:
         for name, group in df.groupby("batch_file"):
             filter_ids = set(group["scopus_ids"])
             with open(Path(RAW_DATA) / str(name)) as f:
                 for line in f:
                     if data := ScopusAPI.translate_record(json.loads(line)):
-                        if data.scopus_id in filter_ids:
+                        sid = str(data.scopus_id)
+                        if sid in filter_ids and sid not in written:
                             out.write(data.model_dump_json() + "\n")
+                            written.add(sid)
 
 
 def main(

@@ -26,8 +26,6 @@ def read_scopes(scope_path: Path) -> list[str]:
         except ValueError as e:
             raise e
         scope_ids.append(item)
-    if not scope_ids:
-        raise ValueError("The list of scope IDs is empty")
     return scope_ids
 
 
@@ -78,7 +76,13 @@ def main(scope_path: Path, output_path: Path):
     scope_ids = read_scopes(scope_path)
     all_rows = [row for scope_id in scope_ids for row in export_assignments(scope_id)]
 
-    pd.DataFrame(all_rows).to_csv(output_path, index=False)
+    annotations = pd.DataFrame(all_rows)
+    if annotations.empty:
+        # zero scopes (all-DEET batch); downstream readers expect a header
+        annotations = pd.DataFrame(
+            columns=["document_id", "name", "abstract", settings.nacsos.inclusion_key]
+        )
+    annotations.to_csv(output_path, index=False)
 
 
 if __name__ == "__main__":
